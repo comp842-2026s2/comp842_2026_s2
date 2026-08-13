@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Degree Certificate — {{ student_name }}</title>
+<style>
+  @page {
+    size: A4 landscape;
+    margin: 0;
+  }
+  html, body {
+    margin: 0;
+    padding: 0;
+    width: 297mm;
+    height: 210mm;
+    font-family: "Georgia", "Times New Roman", serif;
+    color: #1b2230;
+  }
+  .certificate {
+    width: 297mm;
+    height: 210mm;
+    box-sizing: border-box;
+    padding: 28px;
+  }
+  .border {
+    box-sizing: border-box;
+    width: 100%;
+    height: 100%;
+    border: 3px solid #16324f;
+    padding: 6px;
+  }
+  .inner {
+    box-sizing: border-box;
+    width: 100%;
+    height: 100%;
+    border: 1px solid #16324f;
+    padding: 50px 70px;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+  .university {
+    font-size: 14px;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    color: #16324f;
+    margin-bottom: 6px;
+  }
+  .title {
+    font-size: 32px;
+    font-weight: bold;
+    color: #16324f;
+    margin: 10px 0 26px;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+  }
+  .presented {
+    font-size: 13px;
+    color: #555;
+    margin-bottom: 6px;
+  }
+  .student-name {
+    font-size: 28px;
+    font-weight: bold;
+    color: #0b2038;
+    margin: 8px 0 22px;
+    border-bottom: 1px solid #16324f;
+    padding-bottom: 10px;
+    min-width: 60%;
+  }
+  .degree-line {
+    font-size: 15px;
+    color: #333;
+    line-height: 1.7;
+    max-width: 640px;
+  }
+  .degree-name {
+    font-weight: bold;
+    color: #16324f;
+  }
+  .footer {
+    margin-top: 40px;
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    font-size: 11px;
+    color: #555;
+  }
+  .footer .block {
+    text-align: center;
+    width: 30%;
+  }
+  .footer .line {
+    border-top: 1px solid #999;
+    margin-bottom: 6px;
+    padding-top: 6px;
+  }
+  .meta {
+    margin-top: 18px;
+    font-size: 9px;
+    color: #999;
+    letter-spacing: 0.5px;
+  }
+</style>
+</head>
+<body>
+  <div class="certificate">
+    <div class="border">
+      <div class="inner">
+        <div class="university">EduChain University</div>
+        <div class="title">Certificate of Graduation</div>
+
+        <div class="presented">This certificate is presented to</div>
+        <div class="student-name">{{ student_name }}</div>
+
+        <div class="degree-line">
+          Student ID <strong>{{ student_id }}</strong>, having fulfilled all requirements
+          prescribed by the University, is hereby awarded the degree of
+          <span class="degree-name">{{ degree_name }}</span>
+          on this <strong>{{ conferral_date }}</strong>.
+        </div>
+
+        <div class="footer">
+          <div class="block">
+            <div class="line">Registrar</div>
+          </div>
+          <div class="block">
+            <div class="line">Date of Conferral: {{ conferral_date }}</div>
+          </div>
+          <div class="block">
+            <div class="line">Vice-Chancellor</div>
+          </div>
+        </div>
+
+        <div class="meta">Registration ID: {{ registration_id }}</div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
