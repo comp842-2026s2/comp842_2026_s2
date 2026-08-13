@@ -3,6 +3,7 @@
 from datetime import date
 
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 from services.pdf_generator import render_degree_pdf
@@ -12,6 +13,17 @@ from services.registration_repository import RegistrationRepository
 
 app = FastAPI()
 registration_repo = RegistrationRepository()
+
+# Allow the React dev server (Vite, usually localhost:5173) to call this API
+# from the browser. Without this, the browser blocks every request with a
+# CORS error before it even reaches these endpoints.
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 @app.get("/")
