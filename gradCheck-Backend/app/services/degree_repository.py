@@ -1,8 +1,3 @@
-"""
-Data access layer for the `degrees` table (read-only — degrees are seeded
-once by an admin, not created through the API).
-"""
-
 import pymysql
 
 from services.db import get_connection
