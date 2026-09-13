@@ -1,5 +1,9 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+
+import type { Degree } from "../models/Degree";
 import type { RegistrationRequest } from "../models/Registration";
+
+import { degreeService } from "../services/DegreeService";
 import { registrationService } from "../services/RegistrationService";
 
 const initialForm: RegistrationRequest = {
@@ -14,6 +18,9 @@ const RegisterStudent = () => {
   const [form, setForm] =
     useState<RegistrationRequest>(initialForm);
 
+  const [degrees, setDegrees] =
+    useState<Degree[]>([]);
+
   const [status, setStatus] =
     useState<string | null>(null);
 
@@ -23,6 +30,32 @@ const RegisterStudent = () => {
   const [isSubmitting, setIsSubmitting] =
     useState(false);
 
+  const [isLoadingDegrees, setIsLoadingDegrees] =
+    useState(true);
+
+  useEffect(() => {
+    const loadDegrees = async () => {
+      try {
+        setIsLoadingDegrees(true);
+
+        const result =
+          await degreeService.getDegrees();
+
+        setDegrees(result);
+      } catch (err) {
+        setError(
+          err instanceof Error
+            ? err.message
+            : "Unable to load degrees"
+        );
+      } finally {
+        setIsLoadingDegrees(false);
+      }
+    };
+
+    loadDegrees();
+  }, []);
+
   const handleChange = (
     event: React.ChangeEvent<HTMLInputElement>
   ) => {
@@ -30,10 +63,16 @@ const RegisterStudent = () => {
 
     setForm((previous) => ({
       ...previous,
-      [name]:
-        name === "degree_id"
-          ? Number(value)
-          : value,
+      [name]: value,
+    }));
+  };
+
+  const handleDegreeChange = (
+    event: React.ChangeEvent<HTMLSelectElement>
+  ) => {
+    setForm((previous) => ({
+      ...previous,
+      degree_id: Number(event.target.value),
     }));
   };
 
@@ -44,6 +83,12 @@ const RegisterStudent = () => {
 
     setStatus(null);
     setError(null);
+
+    if (form.degree_id === 0) {
+      setError("Please select a degree");
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
@@ -146,19 +191,33 @@ const RegisterStudent = () => {
                     htmlFor="degree_id"
                     className="form-label"
                   >
-                    Degree ID
+                    Degree
                   </label>
 
-                  <input
+                  <select
                     id="degree_id"
-                    type="number"
                     name="degree_id"
-                    className="form-control"
+                    className="form-select"
                     value={form.degree_id}
-                    onChange={handleChange}
-                    min={1}
+                    onChange={handleDegreeChange}
+                    disabled={isLoadingDegrees}
                     required
-                  />
+                  >
+                    <option value={0}>
+                      {isLoadingDegrees
+                        ? "Loading degrees..."
+                        : "Select a degree"}
+                    </option>
+
+                    {degrees.map((degree) => (
+                      <option
+                        key={degree.degree_id}
+                        value={degree.degree_id}
+                      >
+                        {degree.degree_name}
+                      </option>
+                    ))}
+                  </select>
                 </div>
 
                 <div className="mb-3">
@@ -204,7 +263,10 @@ const RegisterStudent = () => {
                   <button
                     type="submit"
                     className="btn btn-primary"
-                    disabled={isSubmitting}
+                    disabled={
+                      isSubmitting ||
+                      isLoadingDegrees
+                    }
                   >
                     {isSubmitting ? (
                       <>
@@ -212,6 +274,7 @@ const RegisterStudent = () => {
                           className="spinner-border spinner-border-sm me-2"
                           aria-hidden="true"
                         />
+
                         Registering...
                       </>
                     ) : (
@@ -221,8 +284,10 @@ const RegisterStudent = () => {
                 </div>
 
               </form>
+
             </div>
           </div>
+
         </div>
       </div>
     </div>

@@ -17,13 +17,13 @@ class RegistrationRepository:
                 if cursor.fetchone() is None:
                     raise ValueError(f"degree_id {degree_id} does not exist")
 
-                cursor.execute("SELECT id FROM registrations WHERE student_id = %s", (student_id,))
+                cursor.execute("SELECT id FROM student_registrations WHERE student_id = %s", (student_id,))
                 if cursor.fetchone() is not None:
                     raise ValueError(f"student_id {student_id} is already registered")
 
                 cursor.execute(
                     """
-                    INSERT INTO registrations
+                    INSERT INTO student_registrations
                         (student_id, student_name, degree_id, wallet_address, conferral_date, status)
                     VALUES (%s, %s, %s, %s, %s, 'registered')
                     """,
@@ -44,7 +44,7 @@ class RegistrationRepository:
                     SELECT r.id, r.student_id, r.student_name, d.degree_name,
                            r.conferral_date, r.status, r.pdf_hash, r.ipfs_cid,
                            r.token_id, r.mint_tx_hash, r.minted_at
-                    FROM registrations r
+                    FROM student_registrations r
                     JOIN degrees d ON r.degree_id = d.id
                     WHERE r.id = %s
                     """,
@@ -55,7 +55,7 @@ class RegistrationRepository:
             connection.close()
 
     def get_registered(self):
-        """SELECT all registrations with status='registered' — the batch
+        """SELECT all student_registrations with status='registered' — the batch
         that 'Generate PDF' processes."""
         connection = get_connection()
         try:
@@ -64,7 +64,7 @@ class RegistrationRepository:
                     """
                     SELECT r.id, r.student_id, r.student_name, r.conferral_date,
                            d.degree_name
-                    FROM registrations r
+                    FROM student_registrations r
                     JOIN degrees d ON r.degree_id = d.id
                     WHERE r.status = 'registered'
                     """
@@ -81,7 +81,7 @@ class RegistrationRepository:
             with connection.cursor() as cursor:
                 cursor.execute(
                     """
-                    UPDATE registrations
+                    UPDATE student_registrations
                     SET pdf_hash = %s,
                         ipfs_cid = %s,
                         pdf_generated_at = NOW(),
