@@ -13,7 +13,7 @@ class DegreeRepository:
         try:
             with connection.cursor(pymysql.cursors.DictCursor) as cursor:
                 cursor.execute(
-                    "SELECT id, degree_name FROM degrees WHERE active = 1"
+                    "SELECT id as degree_id, degree_name FROM degrees WHERE active = 1"
                 )
                 return cursor.fetchall()
         finally:
