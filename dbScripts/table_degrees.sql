@@ -1,3 +1,5 @@
+USE gradcheck;
+
 CREATE TABLE degrees (
     id INT AUTO_INCREMENT PRIMARY KEY,
     degree_name VARCHAR(150) NOT NULL,

@@ -1,3 +1,5 @@
+USE gradcheck;
+
 CREATE TABLE verification_links (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     registration_id BIGINT NOT NULL,
@@ -6,7 +8,7 @@ CREATE TABLE verification_links (
     token_hash VARCHAR(64) NOT NULL,
 
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    expires_at TIMESTAMP NOT NULL,
+    expires_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     revoked BOOLEAN NOT NULL DEFAULT FALSE,
 
     -- Unique so a lookup by token_hash is a direct indexed match, not a scan
