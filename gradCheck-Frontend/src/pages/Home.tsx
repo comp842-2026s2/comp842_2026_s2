@@ -1,4 +1,4 @@
-import { useNavigate } from "react-router";
+import { Link, useNavigate } from "react-router";
 
 const Home = () => {
   const navigate = useNavigate();
@@ -20,6 +20,14 @@ const Home = () => {
               >
                 Register Student
               </button>
+             <br />
+
+              <div className="mt-3">
+                <Link to="/staff">
+                  Go to Staff Page
+                </Link>
+              </div>
+
             </div>
           </div>
         </div>

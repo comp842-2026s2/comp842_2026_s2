@@ -7,6 +7,7 @@ import CertificateGeneration from "./components/CertificateGeneration";
 import AdminDashboard from "./components/AdminDashboard";
 
 import "./App.css";
+import StaffHome from "./pages/StaffHome";
 
 function App() {
   return (
@@ -19,6 +20,11 @@ function App() {
       <Route
         path="/student/register"
         element={<RegisterStudent />}
+      />
+
+      <Route
+        path="/staff"
+        element={<StaffHome />}
       />
 
       <Route

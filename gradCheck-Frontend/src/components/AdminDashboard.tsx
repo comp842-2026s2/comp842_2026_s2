@@ -84,7 +84,7 @@ function AdminDashboard() {
     <div className="admin-dashboard">
       <div className="gradcheck-page-header">
         <div>
-          <h1>Admin / Minting Dashboard</h1>
+          <h1>Admin Dashboard</h1>
 
           <p>
             Monitor certificate generation and

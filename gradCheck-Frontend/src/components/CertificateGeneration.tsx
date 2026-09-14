@@ -76,7 +76,7 @@ function CertificateGeneration() {
     <div className="certificate-page">
       <div className="gradcheck-page-header">
         <div>
-          <h1>Certificate Generation</h1>
+          <h1>Certificate & Token Generation</h1>
 
           <p>
             Generate degree certificates for
