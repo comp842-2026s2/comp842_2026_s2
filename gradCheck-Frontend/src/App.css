@@ -182,3 +182,391 @@
     border-right-color: var(--border);
   }
 }
+
+/* =========================================================
+   GradCheck - Staff Registration / Certificate / Admin Pages
+   ========================================================= */
+
+/* ---------- Shared staff page layout ---------- */
+
+.staff-page,
+.certificate-page,
+.admin-dashboard {
+  width: 100%;
+  min-height: 100vh;
+  padding: 40px;
+  background: #f5f7fb;
+  color: #1f2937;
+  box-sizing: border-box;
+}
+
+.staff-page {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+/* ---------- Staff Registration ---------- */
+
+.staff-card {
+  width: 100%;
+  max-width: 560px;
+  padding: 36px;
+  border-radius: 16px;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+}
+
+.staff-card h1 {
+  margin: 0 0 8px;
+  font-size: 30px;
+  color: #111827;
+}
+
+.staff-subtitle {
+  margin: 0 0 28px;
+  color: #6b7280;
+  font-size: 15px;
+}
+
+.staff-form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.staff-form label {
+  margin-top: 8px;
+  font-weight: 600;
+  font-size: 14px;
+  color: #374151;
+}
+
+.staff-form input {
+  width: 100%;
+  padding: 12px 14px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #111827;
+  font-size: 15px;
+  box-sizing: border-box;
+  transition:
+    border-color 0.2s,
+    box-shadow 0.2s;
+}
+
+.staff-form input:focus {
+  outline: none;
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+}
+
+/* ---------- Shared Buttons ---------- */
+
+.gradcheck-primary-button,
+.gradcheck-mint-button,
+.gradcheck-secondary-button {
+  border: none;
+  border-radius: 8px;
+  padding: 12px 20px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    background 0.2s,
+    transform 0.1s,
+    opacity 0.2s;
+}
+
+.gradcheck-primary-button {
+  margin-top: 18px;
+  background: #2563eb;
+  color: #ffffff;
+}
+
+.gradcheck-primary-button:hover {
+  background: #1d4ed8;
+}
+
+.gradcheck-mint-button {
+  background: #111827;
+  color: #ffffff;
+}
+
+.gradcheck-mint-button:hover {
+  background: #000000;
+}
+
+.gradcheck-secondary-button {
+  background: #e5e7eb;
+  color: #1f2937;
+}
+
+.gradcheck-secondary-button:hover {
+  background: #d1d5db;
+}
+
+.gradcheck-primary-button:disabled,
+.gradcheck-mint-button:disabled,
+.gradcheck-secondary-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.gradcheck-primary-button:active,
+.gradcheck-mint-button:active,
+.gradcheck-secondary-button:active {
+  transform: translateY(1px);
+}
+
+/* ---------- Success / Error Messages ---------- */
+
+.gradcheck-success-message,
+.gradcheck-error-message {
+  margin: 16px 0;
+  padding: 12px 14px;
+  border-radius: 8px;
+  font-size: 14px;
+}
+
+.gradcheck-success-message {
+  background: #dcfce7;
+  color: #166534;
+  border: 1px solid #bbf7d0;
+}
+
+.gradcheck-error-message {
+  background: #fee2e2;
+  color: #991b1b;
+  border: 1px solid #fecaca;
+}
+
+/* =========================================================
+   Certificate Generation Page
+   ========================================================= */
+
+.certificate-page,
+.admin-dashboard {
+  max-width: 1500px;
+  margin: 0 auto;
+}
+
+.gradcheck-page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 24px;
+  margin-bottom: 28px;
+}
+
+.gradcheck-page-header h1 {
+  margin: 0 0 6px;
+  color: #111827;
+  font-size: 30px;
+}
+
+.gradcheck-page-header p {
+  margin: 0;
+  color: #6b7280;
+}
+
+/* ---------- Summary Cards ---------- */
+
+.gradcheck-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 16px;
+  margin-bottom: 28px;
+}
+
+.gradcheck-summary-card {
+  padding: 20px;
+  border-radius: 12px;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+}
+
+.gradcheck-summary-card span {
+  display: block;
+  color: #6b7280;
+  font-size: 14px;
+  margin-bottom: 8px;
+}
+
+.gradcheck-summary-card strong {
+  color: #111827;
+  font-size: 28px;
+}
+
+/* =========================================================
+   Tables - Certificate & Minting Dashboard
+   ========================================================= */
+
+.gradcheck-table-container {
+  width: 100%;
+  overflow-x: auto;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  background: #ffffff;
+}
+
+.gradcheck-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 950px;
+}
+
+.gradcheck-table th {
+  padding: 14px 16px;
+  text-align: left;
+  background: #f9fafb;
+  color: #374151;
+  font-size: 13px;
+  font-weight: 700;
+  border-bottom: 1px solid #e5e7eb;
+  white-space: nowrap;
+}
+
+.gradcheck-table td {
+  padding: 14px 16px;
+  text-align: left;
+  color: #374151;
+  font-size: 14px;
+  border-bottom: 1px solid #f3f4f6;
+  vertical-align: middle;
+}
+
+.gradcheck-table tbody tr:hover {
+  background: #f9fafb;
+}
+
+.gradcheck-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.gradcheck-table small {
+  color: #9ca3af;
+}
+
+/* ---------- Long Hash / Wallet Values ---------- */
+
+.gradcheck-hash-cell {
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: monospace;
+  font-size: 12px;
+}
+
+/* =========================================================
+   Pipeline Status Badges
+   registered -> pdf_generated -> minted / failed
+   ========================================================= */
+
+.gradcheck-status {
+  display: inline-block;
+  padding: 5px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: capitalize;
+  white-space: nowrap;
+}
+
+.gradcheck-status-registered {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.gradcheck-status-pdf_generated {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+.gradcheck-status-minted {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.gradcheck-status-failed {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+/* =========================================================
+   Admin Dashboard extras
+   ========================================================= */
+
+.admin-dashboard-toolbar {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.admin-dashboard-section-title {
+  margin: 32px 0 14px;
+  color: #111827;
+  font-size: 20px;
+}
+
+.gradcheck-empty-state {
+  padding: 40px;
+  text-align: center;
+  color: #6b7280;
+}
+
+/* =========================================================
+   Responsive
+   ========================================================= */
+
+@media (max-width: 768px) {
+  .staff-page,
+  .certificate-page,
+  .admin-dashboard {
+    padding: 20px;
+  }
+
+  .staff-card {
+    padding: 24px;
+  }
+
+  .staff-card h1,
+  .gradcheck-page-header h1 {
+    font-size: 25px;
+  }
+
+  .gradcheck-page-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .gradcheck-page-header button {
+    width: 100%;
+  }
+
+  .admin-dashboard-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .admin-dashboard-toolbar button {
+    width: 100%;
+  }
+
+  .gradcheck-summary-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (max-width: 480px) {
+  .gradcheck-summary-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .staff-card {
+    padding: 20px;
+  }
+}
