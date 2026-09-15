@@ -2,8 +2,9 @@
 
 from datetime import date
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel
 
 from services.pdf_generator import render_degree_pdf
@@ -11,10 +12,19 @@ from services.hasher import hash_pdf
 from services.ipfs_client import upload_to_ipfs
 from services.registration_repository import RegistrationRepository
 from services.degree_repository import DegreeRepository
+from services.login_repository import LoginRepository
+from services.auth import (
+    verify_password,
+    create_access_token,
+    decode_access_token,
+    LOGIN_TYPE_ADMIN,
+)
 
 app = FastAPI()
 registration_repo = RegistrationRepository()
 degree_repo = DegreeRepository()
+login_repo = LoginRepository()
+bearer_scheme = HTTPBearer()
 
 # Allow the React dev server (Vite, usually localhost:5173) to call this API
 # from the browser. Without this, the browser blocks every request with a
@@ -40,6 +50,46 @@ def list_degrees():
     return degree_repo.get_all()
 
 
+def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme)):
+    """Decode and validate the JWT sent as 'Authorization: Bearer <token>'.
+    Raises 401 if the header is missing, the token is invalid, or expired."""
+    try:
+        return decode_access_token(credentials.credentials)
+    except Exception:
+        raise HTTPException(status_code=401, detail="Invalid or expired token")
+
+
+def require_admin(user: dict = Depends(get_current_user)):
+    """Same as get_current_user, but also requires an admin login_type."""
+    if user.get("login_type") != LOGIN_TYPE_ADMIN:
+        raise HTTPException(status_code=403, detail="Admin access required")
+    return user
+
+
+class LoginRequest(BaseModel):
+    login_id: str
+    login_password: str
+
+
+@app.post("/login")
+def login(payload: LoginRequest):
+    """Authenticate against login_info and issue a JWT. Frontend sends this
+    token back as 'Authorization: Bearer <token>' on protected endpoints."""
+    user = login_repo.get_by_login_id(payload.login_id)
+    if user is None or not verify_password(payload.login_password, user["login_password"]):
+        raise HTTPException(status_code=401, detail="Invalid login_id or password")
+
+    token = create_access_token(login_id=user["login_id"], login_type=user["login_type"])
+    return {"access_token": token, "token_type": "bearer", "login_type": user["login_type"]}
+
+
+@app.get("/students")
+def list_all_students(user: dict = Depends(get_current_user)):
+    """Return every registered student, regardless of status. Requires a
+    valid login token (any login_type) — for an admin/staff dashboard view."""
+    return registration_repo.get_all()
+
+
 class RegistrationRequest(BaseModel):
     student_id: str
     student_name: str
@@ -49,9 +99,10 @@ class RegistrationRequest(BaseModel):
 
 
 @app.post("/register")
-def register_student(payload: RegistrationRequest):
+def register_student(payload: RegistrationRequest, admin: dict = Depends(require_admin)):
     """Register a new student for graduation. Backend for the
-    'Registration' page — Frontend calls this when the form is submitted."""
+    'Registration' page — Frontend calls this when the form is submitted.
+    Requires an admin login token."""
     try:
         new_id = registration_repo.create(
             student_id=payload.student_id,
@@ -98,10 +149,10 @@ def verify_certificate(registration_id: int):
 
 
 @app.post("/generate-pdf")
-def generate_pdf_batch():
+def generate_pdf_batch(admin: dict = Depends(require_admin)):
     """Process every registration with status='registered':
     render its PDF, hash it, upload to IPFS, and write the results
-    back to the database."""
+    back to the database. Requires an admin login token."""
     students = registration_repo.get_registered()
     results = []
 
