@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Link } from "react-router";
 import { staffService } from "../services/StaffRegistrationService";
 
 function StaffRegistration() {
@@ -62,8 +63,12 @@ function StaffRegistration() {
   return (
     <div className="staff-page">
       <div className="staff-card">
+          <Link to="/staff" className="back-button">
+            ← Back
+          </Link>
+          <br />
+        
         <h1>Staff Registration</h1>
-
         <p className="subtitle">
           Create an authorised GradCheck staff account.
         </p>

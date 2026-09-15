@@ -1,8 +1,6 @@
-import { Link, useNavigate } from "react-router";
+import { Link } from "react-router";
 
 const Home = () => {
-  const navigate = useNavigate();
-
   return (
     <div className="container py-5">
       <div className="row justify-content-center">

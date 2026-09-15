@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router";
 import { staffService } from "../services/StaffRegistrationService";
 import type { StudentCredential } from "../models/Staff";
 
@@ -75,6 +76,9 @@ function CertificateGeneration() {
   return (
     <div className="certificate-page">
       <div className="gradcheck-page-header">
+        <Link to="/staff" className="back-button">
+            ← Back
+          </Link>
         <div>
           <h1>Certificate & Token Generation</h1>
 
