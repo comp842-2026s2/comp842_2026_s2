@@ -24,7 +24,9 @@ http://127.0.0.1:8000/docs
 
 ## 2. Authentication
 
-`POST /register`, `POST /generate-pdf`, and `GET /students` now require a login token — everything else (`GET /degrees`, `GET /verify/{id}`) is still public, no login needed.
+`POST /register`, `POST /generate-pdf`, `GET /students`, and all `/staff` endpoints now require a login token — everything else (`GET /degrees`, `GET /verify/{id}`) is still public, no login needed.
+
+There's only one admin-level `login_type` (`2`) — it's used for both admin and staff accounts, so any `login_type: 2` login can use the `/staff` endpoints too.
 
 ### `POST /login`
 
@@ -168,6 +170,66 @@ Response (200):
     "registered_at": "2026-09-14T10:22:00"
   }
 ]
+```
+
+### `GET /staff` — Staff management list (**admin token required**)
+
+No request body. Returns every staff row, including deactivated ones.
+
+Response (200):
+```json
+[
+  {
+    "id": 1,
+    "staff_id": "ST001",
+    "full_name": "Test Staff",
+    "email": "teststaff@example.com",
+    "created_date": "2026-09-15",
+    "updated_date": "2026-09-15",
+    "active": 1
+  }
+]
+```
+
+### `POST /staff` — Add a new staff member (**admin token required**)
+
+Request body:
+```json
+{ "staff_id": "ST002", "full_name": "Jane Staff", "email": "jane@example.com" }
+```
+
+Response (200) — the newly created row:
+```json
+{
+  "id": 2,
+  "staff_id": "ST002",
+  "full_name": "Jane Staff",
+  "email": "jane@example.com",
+  "created_date": "2026-09-15",
+  "updated_date": "2026-09-15",
+  "active": 1
+}
+```
+
+Response (400) — if `staff_id` is already registered:
+```json
+{ "detail": "staff_id ST002 is already registered" }
+```
+
+### `PUT /staff/{id}` — Update or deactivate a staff member (**admin token required**)
+
+Send only the fields you want to change — everything else stays as-is. To deactivate someone instead of deleting them, send `{ "active": false }`.
+
+Request body (all fields optional):
+```json
+{ "full_name": "New Name", "email": "new@example.com", "active": false }
+```
+
+Response (200) — the updated row (same shape as `GET /staff`).
+
+Response (404) — if `id` doesn't exist:
+```json
+{ "detail": "Staff not found" }
 ```
 
 ### `POST /generate-pdf` — Admin "Generate PDF" button (**admin token required**)

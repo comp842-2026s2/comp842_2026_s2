@@ -1,6 +1,7 @@
 """FastAPI app entry point for the gradCheck backend."""
 
 from datetime import date
+from typing import Optional
 
 from fastapi import FastAPI, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
@@ -13,6 +14,7 @@ from services.ipfs_client import upload_to_ipfs
 from services.registration_repository import RegistrationRepository
 from services.degree_repository import DegreeRepository
 from services.login_repository import LoginRepository
+from services.staff_repository import StaffRepository
 from services.auth import (
     verify_password,
     create_access_token,
@@ -24,6 +26,7 @@ app = FastAPI()
 registration_repo = RegistrationRepository()
 degree_repo = DegreeRepository()
 login_repo = LoginRepository()
+staff_repo = StaffRepository()
 bearer_scheme = HTTPBearer()
 
 # Allow the React dev server (Vite, usually localhost:5173) to call this API
@@ -88,6 +91,57 @@ def list_all_students(user: dict = Depends(get_current_user)):
     """Return every registered student, regardless of status. Requires a
     valid login token (any login_type) — for an admin/staff dashboard view."""
     return registration_repo.get_all()
+
+
+class StaffRequest(BaseModel):
+    staff_id: str
+    full_name: str
+    email: str
+
+
+class StaffUpdateRequest(BaseModel):
+    full_name: Optional[str] = None
+    email: Optional[str] = None
+    active: Optional[bool] = None
+
+
+@app.get("/staff")
+def list_all_staff(admin: dict = Depends(require_admin)):
+    """Return every staff row. Admin only (login_type 2 covers both admin
+    and staff accounts — there's no separate staff login_type)."""
+    return staff_repo.get_all()
+
+
+@app.post("/staff")
+def add_staff(payload: StaffRequest, admin: dict = Depends(require_admin)):
+    """Register a new staff member. Admin only."""
+    try:
+        new_id = staff_repo.create(
+            staff_id=payload.staff_id,
+            full_name=payload.full_name,
+            email=payload.email,
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+    return staff_repo.get_by_id(new_id)
+
+
+@app.put("/staff/{staff_row_id}")
+def update_staff(staff_row_id: int, payload: StaffUpdateRequest, admin: dict = Depends(require_admin)):
+    """Update a staff row's name/email, or activate/deactivate it (set
+    active: false instead of deleting). Only the fields you send are
+    changed. Admin only."""
+    updated = staff_repo.update(
+        staff_row_id,
+        full_name=payload.full_name,
+        email=payload.email,
+        active=payload.active,
+    )
+    if not updated:
+        raise HTTPException(status_code=404, detail="Staff not found")
+
+    return staff_repo.get_by_id(staff_row_id)
 
 
 class RegistrationRequest(BaseModel):
