@@ -17,14 +17,14 @@ const Home = () => {
               </div>
 
               <div className="mt-3">
-                <Link to="/staff/certificates">
-                  Generate Certificates and Tokens
+                <Link to="/staff/dashboard">
+                  View Dashboard
                 </Link>
               </div>
 
               <div className="mt-3">
-                <Link to="/staff/dashboard">
-                  View Dashboard
+                <Link to="/staff/certificates">
+                  Generate Certificates and Tokens
                 </Link>
               </div>
               

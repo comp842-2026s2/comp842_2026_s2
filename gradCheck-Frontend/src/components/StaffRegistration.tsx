@@ -1,8 +1,43 @@
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router";
 import { staffService } from "../services/StaffRegistrationService";
 
+interface StaffMember {
+  id: number;
+  staff_id: string;
+  full_name: string;
+  email: string;
+  active: boolean | number;
+}
+
+async function getAllStaff(signal?: AbortSignal): Promise<StaffMember[]> {
+  const response = await fetch("http://localhost:8000/staff", { signal });
+  if (!response.ok) throw new Error("Unable to load staff list.");
+  const data: unknown = await response.json();
+  if (!Array.isArray(data)) throw new Error("Invalid staff list response.");
+  return data;
+}
+
 function StaffRegistration() {
+  const [staff, setStaff] = useState<StaffMember[]>([]);
+  const [staffLoading, setStaffLoading] = useState(false);
+  const [staffError, setStaffError] = useState("");
+  const [refreshKey, setRefreshKey] = useState(0);
+  const refreshStaff = useCallback(() => setRefreshKey((key) => key + 1), []);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    setStaff([]);
+    setStaffLoading(true);
+    setStaffError("");
+    getAllStaff(controller.signal)
+      .then((data) => { if (!controller.signal.aborted) setStaff(data); })
+      .catch((err: unknown) => {
+        if (!controller.signal.aborted) setStaffError(err instanceof Error ? err.message : "Unable to load staff.");
+      })
+      .finally(() => { if (!controller.signal.aborted) setStaffLoading(false); });
+    return () => controller.abort();
+  }, [refreshKey]);
   const [staffId, setStaffId] = useState("");
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
@@ -44,6 +79,7 @@ function StaffRegistration() {
           "Staff account created successfully."
       );
 
+      refreshStaff();
       setStaffId("");
       setFullName("");
       setEmail("");
@@ -61,7 +97,7 @@ function StaffRegistration() {
   };
 
   return (
-    <div className="staff-page">
+    <div className="staff-page staff-registration-page">
       <div className="staff-card">
           <Link to="/staff" className="back-button">
             ← Back
@@ -73,9 +109,11 @@ function StaffRegistration() {
           Create an authorised GradCheck staff account.
         </p>
 
-        <form className="staff-form" onSubmit={handleSubmit}>
-          <label>Staff ID</label>
-          <input
+        <form className="staff-form staff-registration-form" onSubmit={handleSubmit}>
+          <div className="staff-registration-field">
+            <label htmlFor="staff-staff-id">Staff ID</label>
+            <input
+              id="staff-staff-id"
             type="text"
             value={staffId}
             onChange={(e) =>
@@ -83,10 +121,13 @@ function StaffRegistration() {
             }
             placeholder="Enter staff ID"
             required
-          />
+            />
+          </div>
 
-          <label>Full Name</label>
-          <input
+          <div className="staff-registration-field">
+            <label htmlFor="staff-full-name">Full Name</label>
+            <input
+              id="staff-full-name"
             type="text"
             value={fullName}
             onChange={(e) =>
@@ -94,10 +135,13 @@ function StaffRegistration() {
             }
             placeholder="Enter full name"
             required
-          />
+            />
+          </div>
 
-          <label>Email Address</label>
-          <input
+          <div className="staff-registration-field staff-registration-full">
+            <label htmlFor="staff-email-address">Email Address</label>
+            <input
+              id="staff-email-address"
             type="email"
             value={email}
             onChange={(e) =>
@@ -105,10 +149,13 @@ function StaffRegistration() {
             }
             placeholder="staff@university.ac.nz"
             required
-          />
+            />
+          </div>
 
-          <label>Password</label>
-          <input
+          <div className="staff-registration-field">
+            <label htmlFor="staff-password">Password</label>
+            <input
+              id="staff-password"
             type="password"
             value={password}
             onChange={(e) =>
@@ -116,10 +163,13 @@ function StaffRegistration() {
             }
             placeholder="Enter password"
             required
-          />
+            />
+          </div>
 
-          <label>Confirm Password</label>
-          <input
+          <div className="staff-registration-field">
+            <label htmlFor="staff-confirm-password">Confirm Password</label>
+            <input
+              id="staff-confirm-password"
             type="password"
             value={confirmPassword}
             onChange={(e) =>
@@ -127,22 +177,23 @@ function StaffRegistration() {
             }
             placeholder="Confirm password"
             required
-          />
+            />
+          </div>
 
           {error && (
-            <div className="error-message">
+            <div className="error-message staff-registration-full">
               {error}
             </div>
           )}
 
           {message && (
-            <div className="success-message">
+            <div className="success-message staff-registration-full">
               {message}
             </div>
           )}
 
           <button
-            className="gradcheck-primary-button"
+            className="gradcheck-primary-button staff-registration-full staff-register-button"
             disabled={loading}
           >
             {loading
@@ -150,6 +201,41 @@ function StaffRegistration() {
               : "Register Staff"}
           </button>
         </form>
+
+      </div>
+      <div className="staff-card" aria-labelledby="all-staff-heading">
+        <section>
+          <div className="gradcheck-page-header">
+            <h2 id="all-staff-heading">All Staff</h2>
+            <button type="button" className="gradcheck-secondary-button" onClick={refreshStaff} disabled={staffLoading}>
+              {staffLoading ? "Loading…" : "Refresh"}
+            </button>
+          </div>
+          {staffError && <p className="gradcheck-error-message" role="alert">{staffError}</p>}
+          <div className="gradcheck-table-container" aria-busy={staffLoading}>
+            <table className="gradcheck-table staff-directory-table" aria-label="All staff" style={{ minWidth: 600 }}>
+              <thead><tr>
+                <th scope="col">Staff ID</th>
+                <th scope="col">Full Name</th>
+                <th scope="col">Email Address</th>
+                <th scope="col">Status</th>
+              </tr></thead>
+              <tbody>
+                {staffLoading ? <tr><td colSpan={4}>Loading staff…</td></tr>
+                  : staffError ? <tr><td colSpan={4}>Staff list is unavailable.</td></tr>
+                  : staff.length === 0 ? <tr><td colSpan={4}>No staff registered yet.</td></tr>
+                  : staff.map((member) => (
+                    <tr key={member.id}>
+                      <td>{member.staff_id}</td>
+                      <td>{member.full_name}</td>
+                      <td>{member.email}</td>
+                      <td>{member.active ? "Active" : "Inactive"}</td>
+                    </tr>
+                  ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
       </div>
     </div>
   );
