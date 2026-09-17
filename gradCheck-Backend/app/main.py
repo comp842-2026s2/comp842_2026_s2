@@ -16,9 +16,11 @@ from services.degree_repository import DegreeRepository
 from services.login_repository import LoginRepository
 from services.staff_repository import StaffRepository
 from services.auth import (
+    hash_password,
     verify_password,
     create_access_token,
     decode_access_token,
+    LOGIN_TYPE_STUDENT,
     LOGIN_TYPE_ADMIN,
 )
 
@@ -84,6 +86,33 @@ def login(payload: LoginRequest):
 
     token = create_access_token(login_id=user["login_id"], login_type=user["login_type"])
     return {"access_token": token, "token_type": "bearer", "login_type": user["login_type"]}
+
+
+class LoginRegisterRequest(BaseModel):
+    login_id: str
+    login_password: str
+    login_type: int = LOGIN_TYPE_STUDENT
+
+
+@app.post("/login/register")
+def register_login(payload: LoginRegisterRequest, admin: dict = Depends(require_admin)):
+    """Create a new login_info account (student or admin/staff). Admin
+    token required — this replaces manually INSERT-ing a bcrypt hash via
+    Workbench. The password is hashed here; it's never stored in plaintext
+    and this endpoint never returns it back."""
+    if payload.login_type not in (LOGIN_TYPE_STUDENT, LOGIN_TYPE_ADMIN):
+        raise HTTPException(status_code=400, detail="login_type must be 1 (student) or 2 (admin/staff)")
+
+    try:
+        new_id = login_repo.create(
+            login_id=payload.login_id,
+            hashed_password=hash_password(payload.login_password),
+            login_type=payload.login_type,
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+    return {"id": new_id, "login_id": payload.login_id, "login_type": payload.login_type}
 
 
 @app.get("/students")

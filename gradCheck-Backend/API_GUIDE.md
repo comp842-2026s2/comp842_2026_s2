@@ -47,6 +47,27 @@ Response (401) — wrong `login_id` or `login_password`:
 { "detail": "Invalid login_id or password" }
 ```
 
+### `POST /login/register` — Create a new login account (**admin token required**)
+
+Creates a new row in `login_info` — replaces manually INSERT-ing a bcrypt hash via Workbench. The password is hashed on the server; it's never stored in plaintext and never returned in any response.
+
+Request body:
+```json
+{ "login_id": "student2", "login_password": "TheirChosenPassword", "login_type": 1 }
+```
+
+`login_type` — `1` = student, `2` = admin/staff. Defaults to `1` if omitted.
+
+Response (200):
+```json
+{ "id": 3, "login_id": "student2", "login_type": 1 }
+```
+
+Response (400) — `login_id` already taken, or `login_type` isn't `1`/`2`:
+```json
+{ "detail": "login_id student2 is already taken" }
+```
+
 ### Using the token
 
 Send it on every protected request as a header:
