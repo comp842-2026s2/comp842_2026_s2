@@ -1,48 +1,29 @@
-import { Routes, Route } from "react-router";
+import { Navigate, Route, Routes } from "react-router-dom";
 
-import Home from "./pages/Home";
-import RegisterStudent from "./components/RegisterStudent";
-import StaffRegistration from "./components/StaffRegistration";
-import CertificateGeneration from "./components/CertificateGeneration";
-import AdminDashboard from "./components/AdminDashboard";
+import StudentRoutes from "./routes/StudentRoutes";
+import StaffRoutes from "./routes/StaffRoutes";
 
-import "./App.css";
-import StaffHome from "./pages/StaffHome";
 
 function App() {
   return (
     <Routes>
       <Route
         path="/"
-        element={<Home />}
+        element={<Navigate to="/student/login" replace />}
       />
 
       <Route
-        path="/student/register"
-        element={<RegisterStudent />}
+        path="/student/*"
+        element={<StudentRoutes />}
       />
 
       <Route
-        path="/staff"
-        element={<StaffHome />}
+        path="/staff/*"
+        element={<StaffRoutes />}
       />
-
-      <Route
-          path="/staff/register"
-          element={<StaffRegistration />}
-        />
-
-        <Route
-          path="/staff/certificates"
-          element={<CertificateGeneration />}
-        />
-
-        <Route
-          path="/staff/dashboard"
-          element={<AdminDashboard />}
-        />
     </Routes>
   );
 }
+
 
 export default App;

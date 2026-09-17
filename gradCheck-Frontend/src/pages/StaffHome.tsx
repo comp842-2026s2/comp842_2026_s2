@@ -1,4 +1,4 @@
-import { Link } from "react-router";
+import { Link } from "react-router-dom";
 
 const Home = () => {
   return (
@@ -27,7 +27,7 @@ const Home = () => {
                   Generate Certificates and Tokens
                 </Link>
               </div>
-              
+
             </div>
           </div>
         </div>

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { Link } from "react-router";
+import { Link } from "react-router-dom";
 import { staffService } from "../services/StaffRegistrationService";
 
 interface StaffMember {
@@ -103,7 +103,7 @@ function StaffRegistration() {
             ← Back
           </Link>
           <br />
-        
+
         <h1>Staff Registration</h1>
         <p className="subtitle">
           Create an authorised GradCheck staff account.

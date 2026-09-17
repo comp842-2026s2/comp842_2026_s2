@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router";
+import { Link } from "react-router-dom";
 import { staffService } from "../services/StaffRegistrationService";
 import type { StudentCredential } from "../models/Staff";
 
