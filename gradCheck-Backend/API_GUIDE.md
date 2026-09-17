@@ -107,14 +107,19 @@ Request body:
   "student_name": "Jane Doe",
   "degree_id": 1,
   "wallet_address": "0x1234567890123456789012345678901234567890",
-  "conferral_date": "2026-12-15"
+  "conferral_date": "2026-12-15",
+  "student_password": "TheirChosenPassword"
 }
 ```
 
+`student_password` is optional. If sent, a login account is created for the student in the same call (`login_id` = `student_id`, `login_type` = 1) — no separate `/login/register` call needed. Omit it to register without creating a login (matches the old behavior).
+
 Response (200):
 ```json
-{ "registration_id": 8, "status": "registered" }
+{ "registration_id": 8, "status": "registered", "login_created": true }
 ```
+
+`login_created` is `false` if `student_password` wasn't sent, or if that `student_id` already has a login account.
 
 Response (400) — if `degree_id` doesn't exist, or `student_id` is already registered:
 ```json

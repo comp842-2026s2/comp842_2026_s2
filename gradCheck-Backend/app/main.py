@@ -179,13 +179,22 @@ class RegistrationRequest(BaseModel):
     degree_id: int
     wallet_address: str
     conferral_date: date
+    student_password: Optional[str] = None
 
 
 @app.post("/register")
 def register_student(payload: RegistrationRequest, admin: dict = Depends(require_admin)):
     """Register a new student for graduation. Backend for the
     'Registration' page — Frontend calls this when the form is submitted.
-    Requires an admin login token."""
+    Requires an admin login token.
+
+    If student_password is provided, a login_info account is created for
+    the student in the same call (login_id = student_id, login_type =
+    student), so they can log in right away — no separate
+    /login/register call needed."""
+    if payload.student_password and login_repo.get_by_login_id(payload.student_id) is not None:
+        raise HTTPException(status_code=400, detail=f"login_id {payload.student_id} is already taken")
+
     try:
         new_id = registration_repo.create(
             student_id=payload.student_id,
@@ -197,7 +206,22 @@ def register_student(payload: RegistrationRequest, admin: dict = Depends(require
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
-    return {"registration_id": new_id, "status": "registered"}
+    login_created = False
+    if payload.student_password:
+        try:
+            login_repo.create(
+                login_id=payload.student_id,
+                hashed_password=hash_password(payload.student_password),
+                login_type=LOGIN_TYPE_STUDENT,
+            )
+            login_created = True
+        except ValueError:
+            # Lost a race against another request creating the same
+            # login_id between our check above and this insert — the
+            # registration itself still succeeded.
+            login_created = False
+
+    return {"registration_id": new_id, "status": "registered", "login_created": login_created}
 
 
 @app.get("/verify/{registration_id}")
