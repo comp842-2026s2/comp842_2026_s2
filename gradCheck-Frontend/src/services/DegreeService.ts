@@ -1,16 +1,10 @@
+import { API_ENDPOINTS } from "../config/ApiConfig";
 import type { Degree } from "../models/Degree";
+import { httpClient } from "./HttpClient";
 
 class DegreeService {
-  private readonly baseUrl = "http://localhost:8000";
-
-  async getDegrees(): Promise<Degree[]> {
-    const response = await fetch(`${this.baseUrl}/degrees`);
-
-    if (!response.ok) {
-      throw new Error("Failed to load degrees");
-    }
-
-    return await response.json() as Degree[];
+  getDegrees(): Promise<Degree[]> {
+    return httpClient.request<Degree[]>(API_ENDPOINTS.degrees.list, {}, false);
   }
 }
 

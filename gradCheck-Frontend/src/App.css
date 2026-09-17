@@ -570,3 +570,93 @@
     padding: 20px;
   }
 }
+.gradcheck-table th:not(:last-child),
+.gradcheck-table td:not(:last-child) {
+  border-right: 1px solid #e5e7eb;
+}
+
+.staff-page.staff-registration-page { align-items: flex-start; }
+          .staff-registration-page > .staff-card {
+            max-width: 1200px;
+            width: 100%;
+            min-width: 0;
+            box-sizing: border-box;
+          }
+          .staff-form.staff-registration-form {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 20px 24px;
+          }
+          .staff-registration-field {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            min-width: 0;
+          }
+          .staff-registration-full { grid-column: 1 / -1; }
+          @media (max-width: 700px) {
+            .staff-page.staff-registration-page { padding: 16px; }
+            .staff-registration-page > .staff-card { padding: 20px; }
+            .staff-form.staff-registration-form { grid-template-columns: minmax(0, 1fr); }
+          }
+
+          .staff-directory-table th:not(:last-child),
+          .staff-directory-table td:not(:last-child) {
+            border-right: 1px solid #e5e7eb;
+          }
+          .staff-page.staff-registration-page {
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            gap: 28px;
+          }
+          .staff-registration-page > .staff-card {
+            max-width: 1200px;
+            width: 100%;
+            min-width: 0;
+            box-sizing: border-box;
+          }
+          .staff-form.staff-registration-form {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 20px 24px;
+          }
+          .staff-registration-field {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            min-width: 0;
+          }
+          .staff-registration-full { grid-column: 1 / -1; }
+          .staff-registration-form > .staff-register-button {
+            justify-self: center;
+            width: auto;
+            max-width: 100%;
+            padding: 12px 32px;
+          }
+          @media (max-width: 700px) {
+            .staff-page.staff-registration-page { padding: 16px; }
+            .staff-registration-page > .staff-card { padding: 20px; }
+            .staff-form.staff-registration-form { grid-template-columns: minmax(0, 1fr); }
+          }
+
+          .staff-directory-table th:not(:last-child),
+          .staff-directory-table td:not(:last-child) {
+            border-right: 1px solid #e5e7eb;
+          }
+          .gradcheck-page-header.certificate-generation-header {
+          display: grid;
+          grid-template-columns: minmax(80px, 1fr) minmax(0, auto) minmax(80px, 1fr);
+        }
+        .certificate-generation-header > .back-button {
+          justify-self: start;
+        }
+        .certificate-generation-heading {
+          text-align: center;
+        }
+        @media (max-width: 700px) {
+          .gradcheck-page-header.certificate-generation-header {
+            grid-template-columns: minmax(0, 1fr);
+            gap: 16px;
+          }
+        }

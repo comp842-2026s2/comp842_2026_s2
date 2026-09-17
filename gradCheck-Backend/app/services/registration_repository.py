@@ -93,6 +93,30 @@ class RegistrationRepository:
         finally:
             connection.close()
 
+    def get_all(self):
+        """SELECT every registration regardless of status — the full
+        student list (e.g. for an admin 'all students' view)."""
+        connection = get_connection()
+        try:
+            with connection.cursor(pymysql.cursors.DictCursor) as cursor:
+                cursor.execute(
+                    """
+                    SELECT r.id, r.student_id, r.student_name, d.degree_name,
+                           r.wallet_address, r.conferral_date, r.status,
+                           r.pdf_hash, r.ipfs_cid, r.token_id, r.mint_tx_hash,
+                           r.minted_at, r.registered_at
+                    FROM student_registrations r
+                    JOIN degrees d ON r.degree_id = d.id
+                    ORDER BY r.registered_at DESC
+                    """
+                )
+                rows = cursor.fetchall()
+                for row in rows:
+                    row["status"] = STATUS_CODES.get(row["status"], row["status"])
+                return rows
+        finally:
+            connection.close()
+
     def update_pdf_info(self, registration_id, pdf_hash, ipfs_cid):
         """UPDATE a registration after its PDF/hash/IPFS work is done,
         and mark its status as 'pdf_generated'."""

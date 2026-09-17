@@ -1,8 +1,6 @@
-import { Link, useNavigate } from "react-router";
+import { Link } from "react-router-dom";
 
 const Home = () => {
-  const navigate = useNavigate();
-
   return (
     <div className="container py-5">
       <div className="row justify-content-center">
@@ -19,17 +17,17 @@ const Home = () => {
               </div>
 
               <div className="mt-3">
+                <Link to="/staff/dashboard">
+                  View Dashboard
+                </Link>
+              </div>
+
+              <div className="mt-3">
                 <Link to="/staff/certificates">
                   Generate Certificates and Tokens
                 </Link>
               </div>
 
-              <div className="mt-3">
-                <Link to="/staff/dashboard">
-                  View Dashboard
-                </Link>
-              </div>
-              
             </div>
           </div>
         </div>

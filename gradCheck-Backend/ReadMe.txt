@@ -10,6 +10,8 @@ Installed
   - requests
   - python-dotenv
   - jinja2
+  - pyjwt
+  - bcrypt
 - System library (via Homebrew, required by weasyprint on Mac):
   - pango
 
@@ -29,7 +31,7 @@ How to install (step by step)
    Your terminal prompt should now show (venv) at the front.
 
 4. Install the required packages:
-   pip install fastapi "uvicorn[standard]" weasyprint pymysql requests python-dotenv jinja2
+   pip install fastapi "uvicorn[standard]" weasyprint pymysql requests python-dotenv jinja2 pyjwt bcrypt
 
 5. Install system library needed by weasyprint (Mac only, via Homebrew):
    brew install pango
@@ -50,6 +52,13 @@ How to install (step by step)
 
    This file is already in .gitignore, so it will never be pushed to Git.
 
+   Also add a JWT signing secret (used by /login to issue tokens) — generate
+   your own random value, don't reuse the example below:
+   JWT_SECRET=paste_a_long_random_string_here
+
+   Generate one with:
+   python3 -c "import secrets; print(secrets.token_hex(32))"
+
 8. To leave the virtual environment when done:
    deactivate
 
@@ -67,8 +76,11 @@ Folder structure
 gradCheck-Backend/app/
   main.py              - FastAPI app, all API endpoints
   services/             - business logic (one file per concern)
-    db.py                  - MySQL connection helper
-    registration_repository.py - all registrations table CRUD (insert/update/select)
+    db.py                  - MySQL connection helper (local or RDS, via DB_MODE)
+    registration_repository.py - all student_registrations table CRUD
+    degree_repository.py    - reads the degrees table
+    login_repository.py     - reads the login_info table
+    auth.py                  - password hashing (bcrypt) + JWT issue/verify
     pdf_generator.py       - renders the certificate PDF
     hasher.py               - sha256 hash of a PDF
     ipfs_client.py          - uploads a PDF to IPFS (Pinata)
