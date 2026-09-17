@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router";
 import { staffService } from "../services/StaffRegistrationService";
 import type { StudentCredential } from "../models/Staff";
 
@@ -30,38 +31,6 @@ function AdminDashboard() {
     loadData();
   }, []);
 
-  const handleMint = async () => {
-    const confirmed = window.confirm(
-      "Mint Soulbound Tokens for all students whose certificates have been generated?"
-    );
-
-    if (!confirmed) return;
-
-    try {
-      setLoading(true);
-      setError("");
-      setMessage("");
-
-      const response =
-        await staffService.mintTokens();
-
-      setMessage(
-        response.message ||
-          "Minting process completed."
-      );
-
-      await loadData();
-    } catch (err) {
-      setError(
-        err instanceof Error
-          ? err.message
-          : "Minting process failed."
-      );
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const total = students.length;
 
   const registered = students.filter(
@@ -83,7 +52,10 @@ function AdminDashboard() {
   return (
     <div className="admin-dashboard">
       <div className="gradcheck-page-header">
-        <div>
+        <Link to="/staff" className="back-button">
+            ← Back
+          </Link>
+        <div style={{ flex: 1, textAlign: "center" }}>
           <h1>Admin Dashboard</h1>
 
           <p>
@@ -92,17 +64,9 @@ function AdminDashboard() {
           </p>
         </div>
 
-        <button
-          className="gradcheck-mint-button"
-          onClick={handleMint}
-          disabled={
-            loading || pdfGenerated === 0
-          }
-        >
-          {loading
-            ? "Minting..."
-            : "Mint Tokens"}
-        </button>
+        <Link to="/staff/certificates">
+                 → Generate Certs and Tokens
+        </Link>
       </div>
 
       <div className="gradcheck-summary-grid">
@@ -145,7 +109,7 @@ function AdminDashboard() {
       )}
 
       <div className="gradcheck-table-container">
-        <table className="gradcheck-table">
+        <table className="gradcheck-table gradcheck-column-separators">
           <thead>
             <tr>
               <th>Student</th>
@@ -154,8 +118,6 @@ function AdminDashboard() {
               <th>PDF</th>
               <th>Mint Status</th>
               <th>Token ID</th>
-              <th>Transaction</th>
-              <th>Error</th>
             </tr>
           </thead>
 
@@ -194,14 +156,6 @@ function AdminDashboard() {
 
                 <td>
                   {student.token_id ?? "-"}
-                </td>
-
-                <td className="gradcheck-hash-cell">
-                  {student.mint_tx_hash || "-"}
-                </td>
-
-                <td>
-                  {student.last_error || "-"}
                 </td>
               </tr>
             ))}
