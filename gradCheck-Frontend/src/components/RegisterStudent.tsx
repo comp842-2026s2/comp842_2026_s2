@@ -18,6 +18,8 @@ const RegisterStudent = () => {
   const [form, setForm] =
     useState<RegistrationRequest>(initialForm);
 
+  const [password, setPassword] = useState("");
+
   const [degrees, setDegrees] =
     useState<Degree[]>([]);
 
@@ -93,13 +95,14 @@ const RegisterStudent = () => {
 
     try {
       const result =
-        await registrationService.registerStudent(form);
+        await registrationService.registerStudent(form, password);
 
       setStatus(
         `Student registered successfully. Registration ID: ${result.registration_id}`
       );
 
       setForm(initialForm);
+      setPassword("");
     } catch (err) {
       setError(
         err instanceof Error
@@ -162,6 +165,28 @@ const RegisterStudent = () => {
                     value={form.student_id}
                     onChange={handleChange}
                     placeholder="Enter student ID"
+                    autoComplete="username"
+                    required
+                  />
+                </div>
+
+                <div className="mb-3">
+                  <label
+                    htmlFor="password"
+                    className="form-label"
+                  >
+                    Password
+                  </label>
+
+                  <input
+                    id="password"
+                    type="password"
+                    name="password"
+                    className="form-control"
+                    value={password}
+                    onChange={(event) => setPassword(event.target.value)}
+                    placeholder="Enter password"
+                    autoComplete="new-password"
                     required
                   />
                 </div>
