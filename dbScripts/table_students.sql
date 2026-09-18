@@ -1,0 +1,12 @@
+USE gradcheck;
+
+CREATE TABLE students (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+	student_id VARCHAR(20) NOT NULL,
+	student_name VARCHAR(150) NOT NULL,
+	date_of_birth DATE NOT NULL,
+	email_address VARCHAR(150) NOT NULL,
+	phone VARCHAR(20) NOT NULL,
+	address_1 VARCHAR(250) NOT NULL,
+	address_2 VARCHAR(250) NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
