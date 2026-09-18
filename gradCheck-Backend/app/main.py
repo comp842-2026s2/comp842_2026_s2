@@ -1,20 +1,23 @@
 """FastAPI app entry point for the gradCheck backend."""
 
-from datetime import date
+import hashlib
+import secrets
+from datetime import date, datetime, timedelta
 from typing import Optional
 
-from fastapi import FastAPI, HTTPException, Depends
+from fastapi import FastAPI, HTTPException, Depends, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel
 
 from services.pdf_generator import render_degree_pdf
 from services.hasher import hash_pdf
-from services.ipfs_client import upload_to_ipfs
+from services.ipfs_client import upload_to_ipfs, download_from_ipfs
 from services.registration_repository import RegistrationRepository
 from services.degree_repository import DegreeRepository
 from services.login_repository import LoginRepository
 from services.staff_repository import StaffRepository
+from services.verification_link_repository import VerificationLinkRepository
 from services.auth import (
     hash_password,
     verify_password,
@@ -29,6 +32,7 @@ registration_repo = RegistrationRepository()
 degree_repo = DegreeRepository()
 login_repo = LoginRepository()
 staff_repo = StaffRepository()
+verification_link_repo = VerificationLinkRepository()
 bearer_scheme = HTTPBearer()
 
 # Allow the React dev server (Vite, usually localhost:5173) to call this API
@@ -69,6 +73,16 @@ def require_admin(user: dict = Depends(get_current_user)):
     if user.get("login_type") != LOGIN_TYPE_ADMIN:
         raise HTTPException(status_code=403, detail="Admin access required")
     return user
+
+
+def require_self_or_admin(studentid: str, user: dict = Depends(get_current_user)):
+    """For the /students/{studentid}/... student-module endpoints: allows
+    either the student themselves (their token's login_id == studentid) or
+    any admin/staff token — so one student can't read another student's
+    data, but staff can look up anyone."""
+    if user.get("login_type") == LOGIN_TYPE_ADMIN or user.get("sub") == studentid:
+        return user
+    raise HTTPException(status_code=403, detail="Not authorized for this student")
 
 
 class LoginRequest(BaseModel):
@@ -224,6 +238,27 @@ def register_student(payload: RegistrationRequest, admin: dict = Depends(require
     return {"registration_id": new_id, "status": "registered", "login_created": login_created}
 
 
+def _pending_release_view(row):
+    """Same 'hide details before conferral_date' shape /verify uses —
+    reused by the student's own certificate view too, so a pre-generated
+    certificate doesn't leak its hash/CID before it's officially conferred."""
+    if row["conferral_date"] > date.today():
+        return {
+            "id": row["id"],
+            "student_id": row["student_id"],
+            "student_name": row["student_name"],
+            "degree_name": row["degree_name"],
+            "conferral_date": row["conferral_date"],
+            "status": "pending_release",
+            "pdf_hash": None,
+            "ipfs_cid": None,
+            "token_id": None,
+            "mint_tx_hash": None,
+            "minted_at": None,
+        }
+    return row
+
+
 @app.get("/verify/{registration_id}")
 def verify_certificate(registration_id: int):
     """Public verification lookup. Backend for the 'Verify Certificate'
@@ -237,22 +272,128 @@ def verify_certificate(registration_id: int):
     if result is None:
         raise HTTPException(status_code=404, detail="Registration not found")
 
-    if result["conferral_date"] > date.today():
-        return {
-            "id": result["id"],
-            "student_id": result["student_id"],
-            "student_name": result["student_name"],
-            "degree_name": result["degree_name"],
-            "conferral_date": result["conferral_date"],
-            "status": "pending_release",
-            "pdf_hash": None,
-            "ipfs_cid": None,
-            "token_id": None,
-            "mint_tx_hash": None,
-            "minted_at": None,
-        }
+    return _pending_release_view(result)
 
-    return result
+
+@app.get("/students/{studentid}")
+def get_student_profile(studentid: str, user: dict = Depends(require_self_or_admin)):
+    """Return this student's own registration(s) — their profile info for
+    the student module's dashboard. A student can have more than one row
+    (one per degree they registered for). Self token or admin token only."""
+    rows = registration_repo.get_by_student_id(studentid)
+    if not rows:
+        raise HTTPException(status_code=404, detail="Student not found")
+    return rows
+
+
+@app.get("/students/{studentid}/certificate")
+def get_student_certificates(studentid: str, user: dict = Depends(require_self_or_admin)):
+    """Return certificate status/info for every one of this student's
+    registrations. Self token or admin token only — same pending_release
+    hiding as the public /verify endpoint applies here too."""
+    rows = registration_repo.get_by_student_id(studentid)
+    if not rows:
+        raise HTTPException(status_code=404, detail="Student not found")
+    return [_pending_release_view(row) for row in rows]
+
+
+@app.get("/students/{studentid}/certificate/download")
+def download_student_certificate(
+    studentid: str,
+    registration_id: Optional[int] = None,
+    user: dict = Depends(require_self_or_admin),
+):
+    """Download the issued certificate PDF (fetched back from IPFS).
+    If this student has more than one registration (multiple degrees),
+    pass ?registration_id=... to pick which one — required in that case."""
+    rows = registration_repo.get_by_student_id(studentid)
+    if not rows:
+        raise HTTPException(status_code=404, detail="Student not found")
+
+    if registration_id is not None:
+        row = next((r for r in rows if r["id"] == registration_id), None)
+        if row is None:
+            raise HTTPException(status_code=404, detail="registration_id does not belong to this student")
+    elif len(rows) == 1:
+        row = rows[0]
+    else:
+        raise HTTPException(
+            status_code=400,
+            detail="This student has multiple registrations — pass ?registration_id=... to pick one",
+        )
+
+    if row["conferral_date"] > date.today():
+        raise HTTPException(status_code=403, detail="Certificate isn't released yet (conferral date hasn't arrived)")
+
+    if not row["ipfs_cid"]:
+        raise HTTPException(status_code=400, detail="Certificate PDF hasn't been generated yet")
+
+    pdf_bytes = download_from_ipfs(row["ipfs_cid"])
+    filename = f"{row['student_id']}_certificate.pdf"
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
+
+
+class VerificationLinkRequest(BaseModel):
+    registration_id: int
+    expires_in_days: int = 7
+
+
+@app.get("/students/{studentid}/verification-links")
+def list_verification_links(studentid: str, user: dict = Depends(require_self_or_admin)):
+    """List every verification link generated across this student's
+    registrations (doesn't expose the raw token — only /login/register-
+    style metadata: id, expiry, revoked). Self token or admin token only."""
+    rows = registration_repo.get_by_student_id(studentid)
+    registration_ids = [r["id"] for r in rows]
+    return verification_link_repo.get_by_registration_ids(registration_ids)
+
+
+@app.post("/students/{studentid}/verification-links")
+def create_verification_link(
+    studentid: str, payload: VerificationLinkRequest, user: dict = Depends(require_self_or_admin)
+):
+    """Generate a new temporary, shareable verification link for one of
+    this student's registrations. Self token or admin token only.
+
+    The raw token is returned here ONCE — only its SHA-256 hash is ever
+    stored, so it can't be recovered later. Build the shareable link on
+    the Frontend as <verify page>?token=<token>."""
+    rows = registration_repo.get_by_student_id(studentid)
+    if not any(r["id"] == payload.registration_id for r in rows):
+        raise HTTPException(status_code=404, detail="registration_id does not belong to this student")
+
+    token = secrets.token_urlsafe(32)
+    token_hash = hashlib.sha256(token.encode("utf-8")).hexdigest()
+    expires_at = datetime.utcnow() + timedelta(days=payload.expires_in_days)
+
+    link_id = verification_link_repo.create(
+        registration_id=payload.registration_id,
+        token_hash=token_hash,
+        expires_at=expires_at,
+    )
+    return {"id": link_id, "token": token, "expires_at": expires_at}
+
+
+@app.delete("/students/{studentid}/verification-links/{link_id}")
+def revoke_verification_link(studentid: str, link_id: int, user: dict = Depends(require_self_or_admin)):
+    """Revoke (deactivate) a verification link, e.g. once it's no longer
+    needed or was shared by mistake. Self token or admin token only —
+    enforced by confirming the link belongs to one of this student's own
+    registrations before revoking it."""
+    link = verification_link_repo.get_by_id(link_id)
+    if link is None:
+        raise HTTPException(status_code=404, detail="Verification link not found")
+
+    rows = registration_repo.get_by_student_id(studentid)
+    if not any(r["id"] == link["registration_id"] for r in rows):
+        raise HTTPException(status_code=404, detail="Verification link not found")
+
+    verification_link_repo.revoke(link_id)
+    return {"id": link_id, "revoked": True}
 
 
 @app.post("/generate-pdf")

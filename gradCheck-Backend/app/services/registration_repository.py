@@ -73,6 +73,33 @@ class RegistrationRepository:
         finally:
             connection.close()
 
+    def get_by_student_id(self, student_id):
+        """SELECT every registration belonging to one student_id (a student
+        can have more than one — one per degree they've registered for).
+        Used by the student module's profile/certificate endpoints."""
+        connection = get_connection()
+        try:
+            with connection.cursor(pymysql.cursors.DictCursor) as cursor:
+                cursor.execute(
+                    """
+                    SELECT r.id, r.student_id, r.student_name, d.degree_name,
+                           r.wallet_address, r.conferral_date, r.status,
+                           r.pdf_hash, r.ipfs_cid, r.token_id, r.mint_tx_hash,
+                           r.minted_at, r.registered_at
+                    FROM student_registrations r
+                    JOIN degrees d ON r.degree_id = d.id
+                    WHERE r.student_id = %s
+                    ORDER BY r.registered_at DESC
+                    """,
+                    (student_id,),
+                )
+                rows = cursor.fetchall()
+                for row in rows:
+                    row["status"] = STATUS_CODES.get(row["status"], row["status"])
+                return rows
+        finally:
+            connection.close()
+
     def get_registered(self):
         """SELECT all student_registrations with status='registered' — the batch
         that 'Generate PDF' processes."""

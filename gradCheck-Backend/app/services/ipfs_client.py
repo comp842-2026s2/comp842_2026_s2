@@ -8,6 +8,7 @@ load_dotenv()
 
 PINATA_JWT = os.environ.get("PINATA_JWT", "")
 PINATA_UPLOAD_URL = "https://api.pinata.cloud/pinning/pinFileToIPFS"
+IPFS_GATEWAY_URL = "https://gateway.pinata.cloud/ipfs/{cid}"
 
 
 def upload_to_ipfs(pdf_bytes: bytes, filename: str = "degree.pdf") -> str:
@@ -26,3 +27,13 @@ def upload_to_ipfs(pdf_bytes: bytes, filename: str = "degree.pdf") -> str:
     response = requests.post(PINATA_UPLOAD_URL, files=files, headers=headers, timeout=30)
     response.raise_for_status()
     return response.json()["IpfsHash"]
+
+
+def download_from_ipfs(cid: str) -> bytes:
+    """Fetch the PDF bytes for a CID back from IPFS (via Pinata's public
+    gateway), for the certificate download endpoint. Raises
+    requests.HTTPError if the CID can't be fetched (e.g. a fake CID from a
+    DRY RUN upload, since there's nothing real on IPFS to fetch)."""
+    response = requests.get(IPFS_GATEWAY_URL.format(cid=cid), timeout=30)
+    response.raise_for_status()
+    return response.content
