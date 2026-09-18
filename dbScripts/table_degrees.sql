@@ -3,5 +3,6 @@ USE gradcheck;
 CREATE TABLE degrees (
     id INT AUTO_INCREMENT PRIMARY KEY,
     degree_name VARCHAR(150) NOT NULL,
+	university_name VARCHAR(250) NOT NULL,
     active BOOLEAN NOT NULL DEFAULT TRUE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
