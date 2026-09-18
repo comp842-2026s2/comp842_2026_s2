@@ -13,7 +13,8 @@ from pydantic import BaseModel
 from services.pdf_generator import render_degree_pdf
 from services.hasher import hash_pdf
 from services.ipfs_client import upload_to_ipfs, download_from_ipfs
-from services.registration_repository import RegistrationRepository
+from services.certificate_repository import CertificateRepository
+from services.student_repository import StudentRepository
 from services.degree_repository import DegreeRepository
 from services.login_repository import LoginRepository
 from services.staff_repository import StaffRepository
@@ -28,7 +29,8 @@ from services.auth import (
 )
 
 app = FastAPI()
-registration_repo = RegistrationRepository()
+registration_repo = CertificateRepository()
+student_repo = StudentRepository()
 degree_repo = DegreeRepository()
 login_repo = LoginRepository()
 staff_repo = StaffRepository()
@@ -205,14 +207,20 @@ def register_student(payload: RegistrationRequest, admin: dict = Depends(require
     If student_password is provided, a login_info account is created for
     the student in the same call (login_id = student_id, login_type =
     student), so they can log in right away — no separate
-    /login/register call needed."""
+    /login/register call needed.
+
+    A student can hold more than one degree — the `students` row (personal
+    info) is shared across all of them, so it's created once (or reused if
+    it already exists) and this call's degree/wallet/conferral details go
+    into their own `certificates` row."""
     if payload.student_password and login_repo.get_by_login_id(payload.student_id) is not None:
         raise HTTPException(status_code=400, detail=f"login_id {payload.student_id} is already taken")
+
+    student_repo.get_or_create(payload.student_id, payload.student_name)
 
     try:
         new_id = registration_repo.create(
             student_id=payload.student_id,
-            student_name=payload.student_name,
             degree_id=payload.degree_id,
             wallet_address=payload.wallet_address,
             conferral_date=payload.conferral_date,

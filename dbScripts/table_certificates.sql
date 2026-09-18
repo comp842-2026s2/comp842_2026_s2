@@ -2,7 +2,7 @@ USE gradcheck;
 
 CREATE TABLE certificates (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
-    certificate_id  VARCHAR(20) NOT NULL,
+    certificate_id  VARCHAR(20) NOT NULL UNIQUE,
 	student_id VARCHAR(20) NOT NULL,
     
 	degree_id INT NOT NULL,
