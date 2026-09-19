@@ -8,9 +8,8 @@ function AdminDashboard() {
     StudentCredential[]
   >([]);
 
-  const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [message, setMessage] = useState("");
+  const [message] = useState("");
 
   const loadData = async () => {
     try {
@@ -43,10 +42,6 @@ function AdminDashboard() {
 
   const minted = students.filter(
     (s) => s.status === "minted"
-  ).length;
-
-  const failed = students.filter(
-    (s) => s.status === "failed"
   ).length;
 
   return (
@@ -89,11 +84,6 @@ function AdminDashboard() {
           <span>Minted</span>
           <strong>{minted}</strong>
         </div>
-
-        <div className="gradcheck-summary-card">
-          <span>Failed</span>
-          <strong>{failed}</strong>
-        </div>
       </div>
 
       {message && (
@@ -113,7 +103,7 @@ function AdminDashboard() {
           <thead>
             <tr>
               <th>Student</th>
-              <th>Degree</th>
+              <th>Programme</th>
               <th>Wallet</th>
               <th>PDF</th>
               <th>Mint Status</th>
@@ -141,9 +131,22 @@ function AdminDashboard() {
                 </td>
 
                 <td>
-                  {student.pdf_hash
-                    ? "Generated"
-                    : "Pending"}
+                  {student.pdf_hash || student.status === "pdf_generated" || student.status === "minted" ? (
+                    student.ipfs_cid ? (
+                      <a
+                        href={`https://ipfs.io/ipfs/${student.ipfs_cid}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        download
+                      >
+                        Download PDF
+                      </a>
+                    ) : (
+                      "Generated"
+                    )
+                  ) : (
+                    "Pending"
+                  )}
                 </td>
 
                 <td>
