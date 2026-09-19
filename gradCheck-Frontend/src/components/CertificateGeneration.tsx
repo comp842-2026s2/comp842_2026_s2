@@ -89,7 +89,7 @@ function CertificateGeneration({ generatePdf, generateToken }: CertificateGenera
       <div className="gradcheck-table-container" aria-busy={loading || active !== null}>
         <table className="gradcheck-table gradcheck-column-separators" aria-label="Student certificate and token generation">
           <thead><tr>
-            <th scope="col">Student ID</th><th scope="col">Student Name</th><th scope="col">Degree</th>
+            <th scope="col">Student ID</th><th scope="col">Student Name</th><th scope="col">Programme</th>
               <th>Status</th><th scope="col">PDF</th><th scope="col">Token</th>
           </tr></thead>
           <tbody>
