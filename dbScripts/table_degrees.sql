@@ -1,6 +1,7 @@
 USE gradcheck;
 
-CREATE TABLE degrees (
+
+CREATE TABLE IF NOT EXISTS degrees (
     id INT AUTO_INCREMENT PRIMARY KEY,
     degree_name VARCHAR(150) NOT NULL,
 	university_name VARCHAR(250) NOT NULL,

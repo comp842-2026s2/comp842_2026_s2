@@ -1,6 +1,7 @@
 USE gradcheck;
 
-CREATE TABLE verification_links (
+
+CREATE TABLE IF NOT EXISTS verification_links (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     student_id BIGINT NOT NULL,
     verification_token VARCHAR(64) NOT NULL UNIQUE,

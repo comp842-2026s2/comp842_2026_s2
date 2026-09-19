@@ -1,6 +1,7 @@
 USE gradcheck;
 
-CREATE TABLE certificates (
+
+CREATE TABLE IF NOT EXISTS certificates (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     certificate_id  VARCHAR(20) NOT NULL UNIQUE,
 	student_id VARCHAR(20) NOT NULL,

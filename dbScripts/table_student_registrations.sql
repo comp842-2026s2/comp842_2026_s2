@@ -1,6 +1,7 @@
 USE gradcheck;
 
-CREATE TABLE student_registrations (
+
+CREATE TABLE IF NOT EXISTS student_registrations (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     student_id VARCHAR(20) NOT NULL,
     student_name VARCHAR(150) NOT NULL,

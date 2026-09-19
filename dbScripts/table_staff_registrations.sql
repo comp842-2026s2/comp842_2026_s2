@@ -1,0 +1,12 @@
+USE gradcheck;
+
+
+CREATE TABLE IF NOT EXISTS staff_registrations (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    staff_id VARCHAR(20) NOT NULL UNIQUE,
+    full_name VARCHAR(150) NOT NULL,
+    email VARCHAR(150) NULL,
+    created_date DATE NOT NULL DEFAULT (CURRENT_DATE),
+    updated_date DATE NOT NULL DEFAULT (CURRENT_DATE),
+    active BOOLEAN NOT NULL DEFAULT TRUE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
