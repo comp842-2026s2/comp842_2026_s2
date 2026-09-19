@@ -126,6 +126,10 @@ const LoginPage = () => {
                 Student without an account?{" "}
                 <Link to="/student/register">Register here</Link>
               </p>
+              <p className="text-center text-muted small mb-0">
+                Staff accounts are created by an existing admin — ask
+                yours to register you under Staff → Register Staff.
+              </p>
             </div>
           </div>
         </div>
