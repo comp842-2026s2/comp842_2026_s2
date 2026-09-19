@@ -125,6 +125,30 @@ class CertificateRepository:
         finally:
             connection.close()
 
+    def get_by_certificate_id(self, certificate_id):
+        """SELECT one certificate by its public certificate_id (e.g.
+        "CERT-ABCD1234") — this, not student_id, is the right identifier
+        for "which certificate" now that a student can hold several.
+        Returns None if not found."""
+        connection = get_connection()
+        try:
+            with connection.cursor(pymysql.cursors.DictCursor) as cursor:
+                cursor.execute(
+                    f"""
+                    SELECT {_SELECT_FIELDS}
+                    FROM certificates c
+                    JOIN students s ON c.student_id = s.student_id
+                    WHERE c.certificate_id = %s
+                    """,
+                    (certificate_id,),
+                )
+                result = cursor.fetchone()
+                if result is not None:
+                    result["status"] = STATUS_CODES.get(result["status"], result["status"])
+                return result
+        finally:
+            connection.close()
+
     def get_by_student_id(self, student_id):
         """SELECT every certificate belonging to one student_id (a student
         can have more than one — one per degree). Used by the student
@@ -207,5 +231,28 @@ class CertificateRepository:
                     """,
                     (pdf_hash, ipfs_cid, STATUS_TO_CODE["pdf_generated"], registration_id),
                 )
+        finally:
+            connection.close()
+
+    def update_mint_info(self, certificate_id, token_id, mint_tx_hash):
+        """UPDATE a certificate after its Soulbound Token has been minted,
+        and mark its status as 'minted'. Keyed by certificate_id (not the
+        internal id) since that's what the mint call is identified by.
+        Returns False if certificate_id doesn't exist."""
+        connection = get_connection()
+        try:
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    """
+                    UPDATE certificates
+                    SET token_id = %s,
+                        mint_tx_hash = %s,
+                        minted_at = NOW(),
+                        status = %s
+                    WHERE certificate_id = %s
+                    """,
+                    (token_id, mint_tx_hash, STATUS_TO_CODE["minted"], certificate_id),
+                )
+                return cursor.rowcount > 0
         finally:
             connection.close()

@@ -19,6 +19,7 @@ export type RegistrationStatus =
 
 export interface StudentCredential {
   id: number;
+  certificate_id: string;
   student_id: string;
   student_name: string;
   degree_name: string;

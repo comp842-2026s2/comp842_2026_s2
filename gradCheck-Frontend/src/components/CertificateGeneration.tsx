@@ -4,10 +4,13 @@ import { staffService } from "../services/StaffRegistrationService";
 import type { StudentCredential } from "../models/Staff";
 
 export interface CertificateGenerationProps {
-  // Connect these to student-specific service methods. The existing
-  // generateCertificates() and mintTokens() methods process ALL eligible rows.
+  // Per-row PDF generation isn't wired up yet — there's no per-certificate
+  // /generate-pdf endpoint, only the bulk "Generate PDF (all pending)"
+  // button above (staffService.generateCertificates()). Pass this once
+  // that endpoint exists. Mint Token, on the other hand, IS wired up
+  // internally below via staffService.generateToken(certificate_id) —
+  // no prop needed for that one.
   generatePdf?: (registrationId: StudentCredential["id"]) => Promise<unknown>;
-  generateToken?: (registrationId: StudentCredential["id"]) => Promise<unknown>;
 }
 
 const hasToken = (student: StudentCredential) =>
@@ -16,7 +19,7 @@ const hasToken = (student: StudentCredential) =>
 const hasPdf = (student: StudentCredential) =>
   Boolean(student.pdf_hash) || student.status === "pdf_generated" || hasToken(student);
 
-function CertificateGeneration({ generatePdf, generateToken }: CertificateGenerationProps = {}) {
+function CertificateGeneration({ generatePdf }: CertificateGenerationProps = {}) {
   const [students, setStudents] = useState<StudentCredential[]>([]);
   const [loading, setLoading] = useState(true);
   const [active, setActive] = useState<{ id: StudentCredential["id"]; action: "pdf" | "token" } | null>(null);
@@ -62,15 +65,18 @@ function CertificateGeneration({ generatePdf, generateToken }: CertificateGenera
     if (busy.current || loading || hasToken(student)) return;
     if (action === "pdf" && hasPdf(student)) return;
     if (action === "token" && !hasPdf(student)) return;
-    const generate = action === "pdf" ? generatePdf : generateToken;
-    if (!generate) return;
+    if (action === "pdf" && !generatePdf) return;
 
     busy.current = true;
     setActive({ id: student.id, action });
     setError("");
     setMessage("");
     try {
-      await generate(student.id);
+      if (action === "pdf") {
+        await generatePdf!(student.id);
+      } else {
+        await staffService.generateToken(student.certificate_id);
+      }
       if (!mounted.current) return;
       setMessage(`${action === "pdf" ? "PDF" : "Token"} generation request completed for ${student.student_name}.`);
       try {
@@ -87,8 +93,8 @@ function CertificateGeneration({ generatePdf, generateToken }: CertificateGenera
     }
   };
 
-  const integrationMessage = !generatePdf || !generateToken
-    ? "Individual generation is not connected yet. Student-specific service methods are required to enable the corresponding actions."
+  const integrationMessage = !generatePdf
+    ? "Individual PDF generation is not connected yet — use \"Generate PDF (all pending)\" above for now."
     : "";
 
   return (
@@ -118,7 +124,7 @@ function CertificateGeneration({ generatePdf, generateToken }: CertificateGenera
       <div className="gradcheck-table-container" aria-busy={loading || active !== null}>
         <table className="gradcheck-table gradcheck-column-separators" aria-label="Student certificate and token generation">
           <thead><tr>
-            <th scope="col">Student ID</th><th scope="col">Student Name</th><th scope="col">Programme</th>
+            <th scope="col">Student ID</th><th scope="col">Student Name</th><th scope="col">Degree</th>
               <th>Status</th><th scope="col">PDF</th><th scope="col">Token</th>
           </tr></thead>
           <tbody>
@@ -140,7 +146,7 @@ function CertificateGeneration({ generatePdf, generateToken }: CertificateGenera
                   </button>
                 )}</td>
                 <td>{hasToken(student) ? <span>{student.token_id != null ? `Token ${student.token_id}` : "Generated"}</span> : (
-                  <button type="button" className="gradcheck-primary-button" disabled={active !== null || !hasPdf(student) || !generateToken} aria-describedby={!generateToken ? "generation-integration" : undefined} title={!hasPdf(student) ? "Generate the PDF first." : undefined} aria-label={`Mint Token for ${student.student_name}`} onClick={() => void handleGenerate(student, "token")}>
+                  <button type="button" className="gradcheck-primary-button" disabled={active !== null || !hasPdf(student)} title={!hasPdf(student) ? "Generate the PDF first." : undefined} aria-label={`Mint Token for ${student.student_name}`} onClick={() => void handleGenerate(student, "token")}>
                     {active?.id === student.id && active.action === "token" ? "Generating…" : "Mint Token"}
                   </button>
                 )}</td>

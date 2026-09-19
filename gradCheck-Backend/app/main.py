@@ -440,3 +440,38 @@ def generate_pdf_batch(admin: dict = Depends(require_admin)):
         })
 
     return {"processed": len(results), "results": results}
+
+
+@app.post("/generate-token/{certificate_id}")
+def generate_token(certificate_id: str, admin: dict = Depends(require_admin)):
+    """Mint the Soulbound Token for one certificate. Keyed by
+    certificate_id (not student_id) since a student can now hold several
+    certificates — certificate_id is the one that's unambiguous.
+
+    TODO(Han Zaw): this stubs the actual mint — it doesn't call the smart
+    contract yet. Replace the block below with the real on-chain mint call
+    (using wallet_address/ipfs_cid/pdf_hash from `certificate`), and use
+    whatever token_id/tx hash it actually returns instead of the
+    placeholders here. Everything else (lookup, status checks, DB update,
+    response shape) should stay the same so the Frontend doesn't need to
+    change once this is wired up for real.
+    """
+    certificate = registration_repo.get_by_certificate_id(certificate_id)
+    if certificate is None:
+        raise HTTPException(status_code=404, detail="Certificate not found")
+
+    if certificate["status"] == "minted":
+        raise HTTPException(status_code=400, detail="Certificate already minted")
+    if certificate["status"] != "pdf_generated":
+        raise HTTPException(
+            status_code=400,
+            detail="PDF must be generated before minting a token",
+        )
+
+    # --- stub start (swap for the real contract call) ---
+    token_id = certificate["id"]
+    mint_tx_hash = "0x" + secrets.token_hex(32)
+    # --- stub end ---
+
+    registration_repo.update_mint_info(certificate_id, token_id, mint_tx_hash)
+    return registration_repo.get_by_certificate_id(certificate_id)
