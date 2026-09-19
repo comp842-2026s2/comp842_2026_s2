@@ -1,5 +1,5 @@
 import { Navigate, Outlet } from "react-router-dom";
-import { authService } from "../services/StudentAuthService";
+import { authService } from "../services/AuthService";
 
 // Gates /staff/register specifically — a regular staff account is staff
 // (isStaff() true) but not the fixed "admin" account, so it gets bounced

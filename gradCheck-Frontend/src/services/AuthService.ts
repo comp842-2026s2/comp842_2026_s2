@@ -47,6 +47,11 @@ class AuthService {
     return authStorage.get()?.login_type === 2;
   }
 
+  isSuperAdmin(): boolean {
+    const auth = authStorage.get();
+    return auth?.login_type === 2 && auth?.login_id === "admin";
+  }
+
   hasLoginType(loginType: LoginType): boolean {
     return authStorage.getLoginType() === loginType;
   }
