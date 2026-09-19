@@ -20,10 +20,13 @@ function CertificateGeneration({ generatePdf, generateToken }: CertificateGenera
   const [students, setStudents] = useState<StudentCredential[]>([]);
   const [loading, setLoading] = useState(true);
   const [active, setActive] = useState<{ id: StudentCredential["id"]; action: "pdf" | "token" } | null>(null);
+  const [bulkGenerating, setBulkGenerating] = useState(false);
   const busy = useRef(false);
   const mounted = useRef(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+
+  const refresh = () => staffService.getRegistrations().then((data) => { if (mounted.current) setStudents(data); });
 
   useEffect(() => {
     mounted.current = true;
@@ -36,6 +39,24 @@ function CertificateGeneration({ generatePdf, generateToken }: CertificateGenera
       .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; mounted.current = false; };
   }, []);
+
+  const handleBulkGeneratePdf = async () => {
+    if (busy.current || bulkGenerating) return;
+    busy.current = true;
+    setBulkGenerating(true);
+    setError("");
+    setMessage("");
+    try {
+      const result = await staffService.generateCertificates();
+      setMessage(`Processed ${result.processed} registration(s).`);
+      await refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "PDF generation failed.");
+    } finally {
+      busy.current = false;
+      if (mounted.current) setBulkGenerating(false);
+    }
+  };
 
   const handleGenerate = async (student: StudentCredential, action: "pdf" | "token") => {
     if (busy.current || loading || hasToken(student)) return;
@@ -73,11 +94,19 @@ function CertificateGeneration({ generatePdf, generateToken }: CertificateGenera
   return (
     <div className="certificate-page">
       <div className="gradcheck-page-header certificate-generation-header">
-        <Link to="/staff" className="back-button">← Back</Link>
+        <Link to="/staff/home" className="back-button">← Back</Link>
         <div className="certificate-generation-heading">
           <h1>Certificate &amp; Token Generation</h1>
           <p><strong>Note:</strong> Staff must generate each student’s PDF certificate before minting their token.</p>
         </div>
+        <button
+          type="button"
+          className="gradcheck-primary-button"
+          onClick={() => void handleBulkGeneratePdf()}
+          disabled={bulkGenerating || loading}
+        >
+          {bulkGenerating ? "Generating…" : "Generate PDF (all pending)"}
+        </button>
       </div>
 
       <div aria-label="Generation messages">
@@ -93,23 +122,6 @@ function CertificateGeneration({ generatePdf, generateToken }: CertificateGenera
               <th>Status</th><th scope="col">PDF</th><th scope="col">Token</th>
           </tr></thead>
           <tbody>
-            {/* Static preview row; no service calls are made for this sample. */}
-            <tr key="sample-student">
-              <td>S001</td>
-              <td>Alice (Sample)</td>
-              <td>Master’s Degree</td>
-              <td>PDF Generated</td>
-              <td>
-                <button type="button" className="gradcheck-primary-button" disabled title="Sample row only">
-                  Generate PDF
-                </button>
-              </td>
-              <td>
-                <button type="button" className="gradcheck-primary-button" disabled title="Sample row only">
-                  Mint Token
-                </button>
-              </td>
-            </tr>
             {loading ? <tr><td colSpan={5} className="gradcheck-empty-state">Loading registrations…</td></tr> : students.length === 0 ? <tr><td colSpan={5} className="gradcheck-empty-state">{error ? "Registrations could not be loaded." : "No registrations found."}</td></tr> : students.map((student) => (
               <tr key={student.id}>
                 <td>{student.student_id}</td>

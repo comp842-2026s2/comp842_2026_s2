@@ -3,7 +3,10 @@ import { Link, useNavigate } from "react-router-dom";
 import type { StudentLoginRequest } from "../models/Auth";
 import { studentAuthService } from "../services/StudentAuthService";
 
-const StudentLoginPage = () => {
+// Renamed from StudentLoginPage — this page is shared by students and
+// staff (one /login route, see App.tsx), so it lives at the top level
+// under pages/ instead of being nested under a student-only path.
+const LoginPage = () => {
   const navigate = useNavigate();
   const [form, setForm] = useState<StudentLoginRequest>({
     login_id: "",
@@ -18,8 +21,13 @@ const StudentLoginPage = () => {
     setIsSubmitting(true);
 
     try {
-      await studentAuthService.login(form);
-      navigate("/student/dashboard", { replace: true });
+      const result = await studentAuthService.login(form);
+      // One shared login for everyone — where it lands depends on
+      // login_type (1 = student, 2 = admin/staff), not on which URL was
+      // used to reach this page.
+      navigate(result.login_type === 2 ? "/staff/dashboard" : "/student/dashboard", {
+        replace: true,
+      });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Login failed.");
     } finally {
@@ -33,9 +41,10 @@ const StudentLoginPage = () => {
         <div className="col-12 col-md-6 col-lg-5">
           <div className="card border-0 shadow-sm">
             <div className="card-body p-4">
-              <h1 className="h3 mb-1">Student Login</h1>
+              <h1 className="h3 mb-1">Login</h1>
               <p className="text-muted mb-4">
-                Sign in using your student ID and password.
+                Sign in with your ID and password — students and staff use
+                the same login.
               </p>
 
               {error && <div className="alert alert-danger">{error}</div>}
@@ -43,7 +52,7 @@ const StudentLoginPage = () => {
               <form onSubmit={handleSubmit}>
                 <div className="mb-3">
                   <label htmlFor="login_id" className="form-label">
-                    Student ID
+                    ID
                   </label>
                   <input
                     id="login_id"
@@ -93,13 +102,6 @@ const StudentLoginPage = () => {
                 Need an account?{" "}
                 <Link to="/student/register">Register as a student</Link>
               </p>
-
-              <div className="mt-3">
-                <Link to="/staff">
-                  Go to Staff Page
-                </Link>
-              </div>
-
             </div>
           </div>
         </div>
@@ -108,4 +110,4 @@ const StudentLoginPage = () => {
   );
 };
 
-export default StudentLoginPage;
+export default LoginPage;

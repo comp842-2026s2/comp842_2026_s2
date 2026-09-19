@@ -4,34 +4,45 @@ import StaffHome from "../pages/StaffHome";
 import StaffRegistration from "../components/StaffRegistration";
 import CertificateGeneration from "../components/CertificateGeneration";
 import AdminDashboard from "../components/AdminDashboard";
+import StaffProtectedRoute from "../components/StaffProtectedRoute";
+import StaffLayout from "../layouts/StaffLayout";
 
+// Login is shared with the Student side (one top-level /login, branching on
+// login_type) — these just redirect there instead of duplicating a form, for
+// anyone who lands on /staff or /staff/login directly.
 const StaffRoutes = () => {
     return (
         <Routes>
             <Route
                 index
-                element={<Navigate to="login" replace />}
+                element={<Navigate to="/login" replace />}
             />
 
             <Route
                 path="login"
-                element={<StaffHome />}
+                element={<Navigate to="/login" replace />}
             />
 
-            <Route
-                path="register"
-                element={<StaffRegistration />}
-            />
+            <Route element={<StaffProtectedRoute />}>
+                <Route element={<StaffLayout />}>
+                    <Route path="home" element={<StaffHome />} />
 
-            <Route
-                path="certificates"
-                element={<CertificateGeneration />}
-            />
+                    <Route
+                        path="register"
+                        element={<StaffRegistration />}
+                    />
 
-            <Route
-                path="dashboard"
-                element={<AdminDashboard />}
-            />
+                    <Route
+                        path="certificates"
+                        element={<CertificateGeneration />}
+                    />
+
+                    <Route
+                        path="dashboard"
+                        element={<AdminDashboard />}
+                    />
+                </Route>
+            </Route>
         </Routes>
     );
 };

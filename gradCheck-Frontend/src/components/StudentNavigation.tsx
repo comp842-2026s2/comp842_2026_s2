@@ -6,7 +6,7 @@ const StudentNavigation = () => {
 
   const logout = () => {
     studentAuthService.logout();
-    navigate("/student/login", { replace: true });
+    navigate("/login", { replace: true });
   };
 
   return (

@@ -52,7 +52,7 @@ function AdminDashboard() {
   return (
     <div className="admin-dashboard">
       <div className="gradcheck-page-header">
-        <Link to="/staff" className="back-button">
+        <Link to="/staff/home" className="back-button">
             ← Back
           </Link>
         <div style={{ flex: 1, textAlign: "center" }}>

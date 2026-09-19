@@ -43,7 +43,7 @@ const StudentRegistrationPage = () => {
 
     try {
       await studentRegistrationService.registerStudent(form, password);
-      navigate("/student/login", {
+      navigate("/login", {
         replace: true,
         state: { message: "Registration successful. Please log in." },
       });
@@ -176,7 +176,7 @@ const StudentRegistrationPage = () => {
               </form>
 
               <p className="text-center mt-3 mb-0">
-                Already registered? <Link to="/student/login">Login</Link>
+                Already registered? <Link to="/login">Login</Link>
               </p>
             </div>
           </div>

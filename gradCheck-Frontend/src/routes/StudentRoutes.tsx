@@ -3,10 +3,13 @@ import StudentProtectedRoute from "../components/StudentProtectedRoute";
 import StudentLayout from "../layouts/StudentLayout";
 import StudentCertificatePage from "../pages/StudentCertificatePage";
 import StudentDashboardPage from "../pages/StudentDashboardPage";
-import StudentLoginPage from "../pages/StudentLoginPage";
 import StudentRegistrationPage from "../pages/StudentRegistrationPage";
 import StudentVerificationLinksPage from "../pages/StudentVerificationLinksPage";
 
+// Login moved out to a top-level /login route (shared with staff — see
+// App.tsx and pages/LoginPage.tsx) since it's generic now, not
+// student-specific. Only registration stays here.
+//
 // Dashboard/certificate/verification-links are nested under
 // StudentProtectedRoute (redirects to login if not logged in) and
 // StudentLayout (adds the navbar with the Logout button) — this was
@@ -15,8 +18,10 @@ import StudentVerificationLinksPage from "../pages/StudentVerificationLinksPage"
 // visits to /student/dashboard weren't redirected to login.
 const StudentRoutes = () => (
   <Routes>
-    <Route path="login" element={<StudentLoginPage />} />
     <Route path="register" element={<StudentRegistrationPage />} />
+
+    {/* Old bookmarked URL — keep redirecting to the real one. */}
+    <Route path="login" element={<Navigate to="/login" replace />} />
 
     <Route element={<StudentProtectedRoute />}>
       <Route element={<StudentLayout />}>
@@ -29,7 +34,7 @@ const StudentRoutes = () => (
       </Route>
     </Route>
 
-    <Route path="" element={<Navigate to="login" replace />} />
+    <Route path="" element={<Navigate to="/login" replace />} />
   </Routes>
 );
 

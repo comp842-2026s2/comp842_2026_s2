@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { staffService } from "../services/StaffRegistrationService";
+import { httpClient } from "../services/HttpClient";
 
 interface StaffMember {
   id: number;
@@ -11,11 +12,12 @@ interface StaffMember {
 }
 
 async function getAllStaff(signal?: AbortSignal): Promise<StaffMember[]> {
-  const response = await fetch("http://localhost:8000/staff", { signal });
-  if (!response.ok) throw new Error("Unable to load staff list.");
-  const data: unknown = await response.json();
+  // Was a plain fetch with no Authorization header — /staff requires an
+  // admin/staff token, so this always 401'd. httpClient attaches the
+  // logged-in user's token automatically.
+  const data = await httpClient.request<unknown>("/staff", { signal });
   if (!Array.isArray(data)) throw new Error("Invalid staff list response.");
-  return data;
+  return data as StaffMember[];
 }
 
 function StaffRegistration() {
@@ -99,7 +101,7 @@ function StaffRegistration() {
   return (
     <div className="staff-page staff-registration-page">
       <div className="staff-card">
-          <Link to="/staff" className="back-button">
+          <Link to="/staff/home" className="back-button">
             ← Back
           </Link>
           <br />
