@@ -3,23 +3,13 @@ import { Link } from "react-router-dom";
 import { staffService } from "../services/StaffRegistrationService";
 import type { StudentCredential } from "../models/Staff";
 
-export interface CertificateGenerationProps {
-  // Per-row PDF generation isn't wired up yet — there's no per-certificate
-  // /generate-pdf endpoint, only the bulk "Generate PDF (all pending)"
-  // button above (staffService.generateCertificates()). Pass this once
-  // that endpoint exists. Mint Token, on the other hand, IS wired up
-  // internally below via staffService.generateToken(certificate_id) —
-  // no prop needed for that one.
-  generatePdf?: (registrationId: StudentCredential["id"]) => Promise<unknown>;
-}
+const isTokenGenerated = (student: StudentCredential) =>
+  Boolean(student.mint_tx_hash);
 
-const hasToken = (student: StudentCredential) =>
-  student.token_id != null || student.status === "minted";
+const isPdfGenerated = (student: StudentCredential) =>
+  Boolean(student.pdf_hash);
 
-const hasPdf = (student: StudentCredential) =>
-  Boolean(student.pdf_hash) || student.status === "pdf_generated" || hasToken(student);
-
-function CertificateGeneration({ generatePdf }: CertificateGenerationProps = {}) {
+function CertificateGeneration() {
   const [students, setStudents] = useState<StudentCredential[]>([]);
   const [loading, setLoading] = useState(true);
   const [active, setActive] = useState<{ id: StudentCredential["id"]; action: "pdf" | "token" } | null>(null);
@@ -62,20 +52,21 @@ function CertificateGeneration({ generatePdf }: CertificateGenerationProps = {})
   };
 
   const handleGenerate = async (student: StudentCredential, action: "pdf" | "token") => {
-    if (busy.current || loading || hasToken(student)) return;
-    if (action === "pdf" && hasPdf(student)) return;
-    if (action === "token" && !hasPdf(student)) return;
-    if (action === "pdf" && !generatePdf) return;
-
+    if (busy.current || loading) return;
+    if (action === "pdf" && isPdfGenerated(student)) return;
+    if (action === "token" && (isTokenGenerated(student) || !isPdfGenerated(student))) return;
     busy.current = true;
     setActive({ id: student.id, action });
     setError("");
     setMessage("");
+     console.log("Generation request:", { action, certificateId: student.certificate_id, registrationId: student.id });
     try {
       if (action === "pdf") {
-        await generatePdf!(student.id);
+
+        
+        await staffService.generatePdf(student.certificate_id, student.id);
       } else {
-        await staffService.generateToken(student.certificate_id);
+        await staffService.generateToken(student.certificate_id, student.id);
       }
       if (!mounted.current) return;
       setMessage(`${action === "pdf" ? "PDF" : "Token"} generation request completed for ${student.student_name}.`);
@@ -92,10 +83,6 @@ function CertificateGeneration({ generatePdf }: CertificateGenerationProps = {})
       if (mounted.current) setActive(null);
     }
   };
-
-  const integrationMessage = !generatePdf
-    ? "Individual PDF generation is not connected yet — use \"Generate PDF (all pending)\" above for now."
-    : "";
 
   return (
     <div className="certificate-page">
@@ -118,17 +105,16 @@ function CertificateGeneration({ generatePdf }: CertificateGenerationProps = {})
       <div aria-label="Generation messages">
         {error && <p className="gradcheck-error-message" role="alert">{error}</p>}
         {message && <p className="gradcheck-success-message" role="status">{message}</p>}
-        {integrationMessage && <p id="generation-integration" className="gradcheck-error-message" role="status">{integrationMessage}</p>}
       </div>
 
       <div className="gradcheck-table-container" aria-busy={loading || active !== null}>
         <table className="gradcheck-table gradcheck-column-separators" aria-label="Student certificate and token generation">
           <thead><tr>
-            <th scope="col">Student ID</th><th scope="col">Student Name</th><th scope="col">Degree</th>
+            <th scope="col">Student ID</th><th scope="col">Student Name</th><th scope="col">Programme</th>
               <th>Status</th><th scope="col">PDF</th><th scope="col">Token</th>
           </tr></thead>
           <tbody>
-            {loading ? <tr><td colSpan={5} className="gradcheck-empty-state">Loading registrations…</td></tr> : students.length === 0 ? <tr><td colSpan={5} className="gradcheck-empty-state">{error ? "Registrations could not be loaded." : "No registrations found."}</td></tr> : students.map((student) => (
+            {loading ? <tr><td colSpan={6} className="gradcheck-empty-state">Loading registrations…</td></tr> : students.length === 0 ? <tr><td colSpan={6} className="gradcheck-empty-state">{error ? "Registrations could not be loaded." : "No registrations found."}</td></tr> : students.map((student) => (
               <tr key={student.id}>
                 <td>{student.student_id}</td>
                 <td>{student.student_name}{student.last_error && <span className="gradcheck-error-message">{student.last_error}</span>}</td>
@@ -140,13 +126,14 @@ function CertificateGeneration({ generatePdf }: CertificateGenerationProps = {})
                     {student.status}
                   </span>
                 </td>
-                <td>{hasPdf(student) ? <span>Generated</span> : (
-                  <button type="button" className="gradcheck-primary-button" disabled={active !== null || !generatePdf} aria-describedby={!generatePdf ? "generation-integration" : undefined} aria-label={`Generate PDF for ${student.student_name}`} onClick={() => void handleGenerate(student, "pdf")}>
+                <td>{isPdfGenerated(student) ? <span>Generated</span> : (
+                  <button type="button" className="gradcheck-primary-button" disabled={active !== null} aria-label={`Generate PDF for ${student.student_name}`} onClick={() => void handleGenerate(student, "pdf")}>
                     {active?.id === student.id && active.action === "pdf" ? "Generating…" : "Generate PDF"}
                   </button>
+
                 )}</td>
-                <td>{hasToken(student) ? <span>{student.token_id != null ? `Token ${student.token_id}` : "Generated"}</span> : (
-                  <button type="button" className="gradcheck-primary-button" disabled={active !== null || !hasPdf(student)} title={!hasPdf(student) ? "Generate the PDF first." : undefined} aria-label={`Mint Token for ${student.student_name}`} onClick={() => void handleGenerate(student, "token")}>
+                <td>{isTokenGenerated(student) ? <span>{student.token_id != null ? `Token ${student.token_id}` : "Generated"}</span> : (
+                  <button type="button" className="gradcheck-primary-button" disabled={active !== null || !isPdfGenerated(student)} title={!isPdfGenerated(student) ? "Generate the PDF first." : undefined} aria-label={`Mint Token for ${student.student_name}`} onClick={() => void handleGenerate(student, "token")}>
                     {active?.id === student.id && active.action === "token" ? "Generating…" : "Mint Token"}
                   </button>
                 )}</td>

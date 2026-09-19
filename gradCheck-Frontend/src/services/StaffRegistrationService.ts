@@ -61,15 +61,27 @@ class StaffService {
     }>("/generate-pdf", { method: "POST" });
   }
 
-  generateToken(certificateId: string) {
-    // 2026-09-19: backend now has POST /generate-token/{certificate_id} —
-    // it's still a stub server-side (no real smart-contract call yet,
-    // that's Han Zaw's piece), but it does write a token_id/mint_tx_hash/
-    // minted_at back to the DB and flip status to "minted", so the full
-    // request/response contract is real and safe to build against now.
-    return httpClient.request<StudentCredential>(
-      `/generate-token/${encodeURIComponent(certificateId)}`,
-      { method: "POST" }
+  generatePdf(certificateId: string, registrationId: number) {
+    return httpClient.request("/generate-pdf", {
+      method: "POST",
+      body: JSON.stringify({ certificate_id: certificateId, registration_id: registrationId }),
+    });
+  }
+
+  generateToken(certificateId: string, registrationId: number) {
+    return httpClient.request("/generate-token", {
+      method: "POST",
+      body: JSON.stringify({ certificate_id: certificateId, registration_id: registrationId }),
+    });
+  }
+
+  mintTokens(): Promise<never> {
+    // There's no /admin/mint (or any minting endpoint) on the backend yet —
+    // that's Han Zaw's smart-contract piece and hasn't landed. Nothing in
+    // the UI currently calls this; it throws instead of silently hitting
+    // a 404 if something is wired to it before that piece exists.
+    return Promise.reject(
+      new Error("Blockchain minting isn't available yet.")
     );
   }
 }
