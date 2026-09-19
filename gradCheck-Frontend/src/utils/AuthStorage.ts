@@ -1,13 +1,13 @@
-import type { StudentLoginResponse } from "../models/Auth";
+import type { LoginResponse, LoginType } from "../models/Auth";
 
-const AUTH_STORAGE_KEY = "studentAuth";
+const AUTH_STORAGE_KEY = "gradcheckAuth";
 
 export const authStorage = {
-  save(auth: StudentLoginResponse) {
+  save(auth: LoginResponse): void {
     sessionStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(auth));
   },
 
-  get(): StudentLoginResponse | null {
+  get(): LoginResponse | null {
     const value = sessionStorage.getItem(AUTH_STORAGE_KEY);
 
     if (!value) {
@@ -15,14 +15,14 @@ export const authStorage = {
     }
 
     try {
-      return JSON.parse(value) as StudentLoginResponse;
+      return JSON.parse(value) as LoginResponse;
     } catch {
       sessionStorage.removeItem(AUTH_STORAGE_KEY);
       return null;
     }
   },
 
-  clear() {
+  clear(): void {
     sessionStorage.removeItem(AUTH_STORAGE_KEY);
   },
 
@@ -30,10 +30,11 @@ export const authStorage = {
     return this.get()?.access_token ?? null;
   },
 
-  // The backend's /login now echoes back login_id (added 2026-09-19) so we
-  // know which studentid to build /students/{studentid}/... URLs with,
-  // instead of a placeholder "me".
-  getCurrentStudentId(): string | null {
+  getLoginId(): string | null {
     return this.get()?.login_id ?? null;
+  },
+
+  getLoginType(): LoginType | null {
+    return this.get()?.login_type ?? null;
   },
 };

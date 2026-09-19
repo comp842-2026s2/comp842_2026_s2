@@ -1,54 +1,56 @@
-import { API_BASE_URL, API_ENDPOINTS } from "../config/ApiConfig";
+import { API_ENDPOINTS } from "../config/ApiConfig";
 import type { StudentCertificate } from "../models/Certificate";
 import { authStorage } from "../utils/AuthStorage";
 import { httpClient } from "./HttpClient";
 
+const getDownloadFilename = (
+  response: Response,
+  fallback: string
+): string => {
+  const disposition = response.headers.get("Content-Disposition");
+  const match = disposition?.match(/filename="?([^";]+)"?/i);
+
+  return match?.[1] ?? fallback;
+};
+
 class StudentCertificateService {
-  async getCertificate(): Promise<StudentCertificate> {
-    const studentId = authStorage.getCurrentStudentId();
+  getCertificates(): Promise<StudentCertificate[]> {
+    const studentId = authStorage.getLoginId();
+
     if (!studentId) {
-      throw new Error("Not logged in.");
+      return Promise.reject(
+        new Error("Student ID is missing from the login session.")
+      );
     }
 
-    // Same "list, take the first" adapter as StudentProfileService — a
-    // student can have more than one certificate (one per degree).
-    const rows = await httpClient.request<StudentCertificate[]>(
-      API_ENDPOINTS.students.certificate(studentId)
+    return httpClient.request<StudentCertificate[]>(
+      API_ENDPOINTS.students.certificates(studentId)
     );
-    if (rows.length === 0) {
-      throw new Error("No certificate found.");
-    }
-    return rows[0];
   }
 
-  async downloadCertificate(): Promise<void> {
-    const studentId = authStorage.getCurrentStudentId();
+  async downloadCertificate(registrationId: number): Promise<void> {
+    const studentId = authStorage.getLoginId();
+
     if (!studentId) {
-      throw new Error("Not logged in.");
+      throw new Error("Student ID is missing from the login session.");
     }
 
-    const token = authStorage.getAccessToken();
-    const headers = new Headers();
+    const path = `${API_ENDPOINTS.students.certificateDownload(
+      studentId
+    )}?registration_id=${encodeURIComponent(registrationId)}`;
 
-    if (token) {
-      headers.set("Authorization", `Bearer ${token}`);
-    }
-
-    const response = await fetch(
-      `${API_BASE_URL}${API_ENDPOINTS.students.certificateDownload(studentId)}`,
-      { headers }
-    );
-
-    if (!response.ok) {
-      throw new Error("Unable to download certificate.");
-    }
-
-    const blob = await response.blob();
+    const { blob, response } = await httpClient.requestBlob(path);
     const url = URL.createObjectURL(blob);
     const anchor = document.createElement("a");
+
     anchor.href = url;
-    anchor.download = "graduation-certificate.pdf";
+    anchor.download = getDownloadFilename(
+      response,
+      `${studentId}_certificate.pdf`
+    );
+    document.body.appendChild(anchor);
     anchor.click();
+    anchor.remove();
     URL.revokeObjectURL(url);
   }
 }

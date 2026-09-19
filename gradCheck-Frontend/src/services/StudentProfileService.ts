@@ -1,27 +1,21 @@
 import { API_ENDPOINTS } from "../config/ApiConfig";
-import type { StudentProfile } from "../models/Student";
+import type { StudentCertificate } from "../models/Certificate";
 import { authStorage } from "../utils/AuthStorage";
 import { httpClient } from "./HttpClient";
 
 class StudentProfileService {
-  async getCurrentStudent(): Promise<StudentProfile> {
-    const studentId = authStorage.getCurrentStudentId();
+  getCurrentStudentRegistrations(): Promise<StudentCertificate[]> {
+    const studentId = authStorage.getLoginId();
+
     if (!studentId) {
-      throw new Error("Not logged in.");
+      return Promise.reject(
+        new Error("Student ID is missing from the login session.")
+      );
     }
 
-    // The backend returns a list — a student can hold more than one degree
-    // (one registration per degree). Taking the first entry here so this
-    // keeps working for the common single-degree case without changing
-    // every page that consumes a single StudentProfile; showing all of a
-    // student's degrees is a bigger UI decision left for later.
-    const rows = await httpClient.request<StudentProfile[]>(
+    return httpClient.request<StudentCertificate[]>(
       API_ENDPOINTS.students.profile(studentId)
     );
-    if (rows.length === 0) {
-      throw new Error("Student not found.");
-    }
-    return rows[0];
   }
 }
 

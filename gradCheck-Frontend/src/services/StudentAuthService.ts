@@ -6,10 +6,8 @@ import type {
 import { authStorage } from "../utils/AuthStorage";
 import { httpClient } from "./HttpClient";
 
-// Shared by both the Student and Staff sides — there's one login page and
-// one /login call for everyone; login_type in the response (1 = student,
-// 2 = admin/staff) is what the app branches on afterwards, not a separate
-// login flow per role.
+const STUDENT_LOGIN_TYPE = 1;
+
 class StudentAuthService {
   async login(request: StudentLoginRequest): Promise<StudentLoginResponse> {
     const result = await httpClient.request<StudentLoginResponse>(
@@ -21,6 +19,11 @@ class StudentAuthService {
       false
     );
 
+    if (result.login_type !== STUDENT_LOGIN_TYPE) {
+      authStorage.clear();
+      throw new Error("This account is not registered as a student account.");
+    }
+
     authStorage.save(result);
     return result;
   }
@@ -30,15 +33,17 @@ class StudentAuthService {
   }
 
   isLoggedIn(): boolean {
-    return authStorage.get() !== null;
+    const auth = authStorage.get();
+
+    return Boolean(
+      auth?.access_token &&
+        auth.login_id &&
+        auth.login_type === STUDENT_LOGIN_TYPE
+    );
   }
 
-  isStudent(): boolean {
-    return authStorage.get()?.login_type === 1;
-  }
-
-  isStaff(): boolean {
-    return authStorage.get()?.login_type === 2;
+  getStudentId(): string | null {
+    return authStorage.getLoginId();
   }
 
   // There's no separate role/tier column yet — the team's fixed rule is
@@ -53,7 +58,3 @@ class StudentAuthService {
 }
 
 export const studentAuthService = new StudentAuthService();
-
-// Alias so Staff-side files don't have to import something named
-// "studentAuthService" for what is now a shared service.
-export const authService = studentAuthService;

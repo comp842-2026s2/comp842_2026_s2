@@ -1,13 +1,16 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { StudentCertificate } from "../models/Certificate";
 import type {
-  VerificationLink,
   VerificationLinkDurationDays,
+  VerificationLinkSummary,
 } from "../models/VerificationLink";
 import { studentCertificateService } from "../services/StudentCertificateService";
 import { verificationLinkService } from "../services/VerificationLinkService";
 
-const durations: Array<{ label: string; value: VerificationLinkDurationDays }> = [
+const durations: Array<{
+  label: string;
+  value: VerificationLinkDurationDays;
+}> = [
   { label: "24 hours", value: 1 },
   { label: "5 days", value: 5 },
   { label: "10 days", value: 10 },
@@ -15,40 +18,85 @@ const durations: Array<{ label: string; value: VerificationLinkDurationDays }> =
   { label: "30 days", value: 30 },
 ];
 
+const getStatus = (link: VerificationLinkSummary) => {
+  if (link.revoked) return "Revoked";
+  if (new Date(link.expires_at).getTime() <= Date.now()) return "Expired";
+  return "Active";
+};
+
 const StudentVerificationLinksPage = () => {
-  const [certificate, setCertificate] = useState<StudentCertificate | null>(null);
-  const [links, setLinks] = useState<VerificationLink[]>([]);
+  const [certificates, setCertificates] = useState<StudentCertificate[]>([]);
+  const [links, setLinks] = useState<VerificationLinkSummary[]>([]);
+  const [registrationId, setRegistrationId] = useState<number>(0);
   const [duration, setDuration] = useState<VerificationLinkDurationDays>(1);
+  const [newShareUrl, setNewShareUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [copyMessage, setCopyMessage] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
   const [isCreating, setIsCreating] = useState(false);
+  const [revokingId, setRevokingId] = useState<number | null>(null);
+
+  const eligibleCertificates = useMemo(
+    () => certificates.filter((certificate) => certificate.status === "minted"),
+    [certificates]
+  );
+
+  const certificateByRegistrationId = useMemo(
+    () => new Map(certificates.map((certificate) => [certificate.id, certificate])),
+    [certificates]
+  );
 
   const load = async () => {
-    const [cert, existingLinks] = await Promise.all([
-      studentCertificateService.getCertificate(),
+    const [certificateRows, existingLinks] = await Promise.all([
+      studentCertificateService.getCertificates(),
       verificationLinkService.getLinks(),
     ]);
-    setCertificate(cert);
+
+    setCertificates(certificateRows);
     setLinks(existingLinks);
+
+    const firstMinted = certificateRows.find(
+      (certificate) => certificate.status === "minted"
+    );
+
+    setRegistrationId((current) => current || firstMinted?.id || 0);
   };
 
   useEffect(() => {
-    load().catch((err) =>
-      setError(err instanceof Error ? err.message : "Unable to load verification links.")
-    );
+    load()
+      .catch((err) =>
+        setError(
+          err instanceof Error
+            ? err.message
+            : "Unable to load verification links."
+        )
+      )
+      .finally(() => setIsLoading(false));
   }, []);
 
   const createLink = async () => {
-    if (!certificate) return;
+    if (!registrationId) {
+      setError("Please select a minted certificate.");
+      return;
+    }
 
     setIsCreating(true);
     setError(null);
+    setCopyMessage(null);
+    setNewShareUrl(null);
 
     try {
-      const link = await verificationLinkService.createLink({
-        certificate_id: certificate.certificate_id,
-        duration_days: duration,
+      const created = await verificationLinkService.createLink({
+        registration_id: registrationId,
+        expires_in_days: duration,
       });
-      setLinks((previous) => [link, ...previous]);
+
+      const shareUrl = `${window.location.origin}/verify?token=${encodeURIComponent(
+        created.token
+      )}`;
+
+      setNewShareUrl(shareUrl);
+      await load();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unable to create link.");
     } finally {
@@ -57,20 +105,28 @@ const StudentVerificationLinksPage = () => {
   };
 
   const revoke = async (id: number) => {
+    setRevokingId(id);
+    setError(null);
+
     try {
       await verificationLinkService.revokeLink(id);
       setLinks((previous) =>
         previous.map((link) =>
-          link.id === id ? { ...link, is_active: false } : link
+          link.id === id ? { ...link, revoked: true } : link
         )
       );
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unable to revoke link.");
+    } finally {
+      setRevokingId(null);
     }
   };
 
-  const copyLink = async (url: string) => {
-    await navigator.clipboard.writeText(url);
+  const copyNewLink = async () => {
+    if (!newShareUrl) return;
+
+    await navigator.clipboard.writeText(newShareUrl);
+    setCopyMessage("Verification link copied.");
   };
 
   return (
@@ -79,91 +135,164 @@ const StudentVerificationLinksPage = () => {
 
       {error && <div className="alert alert-danger">{error}</div>}
 
+      {newShareUrl && (
+        <div className="alert alert-success">
+          <p className="fw-semibold mb-2">Verification link created.</p>
+          <p className="mb-2">
+            Copy this link now. For security, the backend stores only a hash of
+            the token, so the complete link cannot be retrieved later.
+          </p>
+          <div className="input-group">
+            <input
+              className="form-control"
+              value={newShareUrl}
+              readOnly
+              aria-label="New verification link"
+            />
+            <button
+              type="button"
+              className="btn btn-outline-success"
+              onClick={copyNewLink}
+            >
+              Copy
+            </button>
+          </div>
+          {copyMessage && <small className="d-block mt-2">{copyMessage}</small>}
+        </div>
+      )}
+
       <div className="card border-0 shadow-sm mb-4">
         <div className="card-body">
           <h2 className="h5">Create Temporary Link</h2>
           <p className="text-muted">
-            Share this link together with your certificate PDF. The recipient must
-            upload the PDF through the valid link to verify it.
+            Select the certificate and how long the verification link should
+            remain valid.
           </p>
 
-          <div className="row g-3 align-items-end">
-            <div className="col-md-5">
-              <label className="form-label" htmlFor="link-duration">
-                Link validity
-              </label>
-              <select
-                id="link-duration"
-                className="form-select"
-                value={duration}
-                onChange={(e) =>
-                  setDuration(Number(e.target.value) as VerificationLinkDurationDays)
-                }
-              >
-                {durations.map((item) => (
-                  <option key={item.value} value={item.value}>
-                    {item.label}
-                  </option>
-                ))}
-              </select>
+          {isLoading ? (
+            <p className="mb-0">Loading certificates...</p>
+          ) : eligibleCertificates.length === 0 ? (
+            <div className="alert alert-info mb-0">
+              A verification link can be generated once a certificate has been
+              minted.
             </div>
+          ) : (
+            <div className="row g-3 align-items-end">
+              <div className="col-md-5">
+                <label className="form-label" htmlFor="certificate-selection">
+                  Certificate
+                </label>
+                <select
+                  id="certificate-selection"
+                  className="form-select"
+                  value={registrationId}
+                  onChange={(event) =>
+                    setRegistrationId(Number(event.target.value))
+                  }
+                >
+                  {eligibleCertificates.map((certificate) => (
+                    <option key={certificate.id} value={certificate.id}>
+                      {certificate.certificate_id} — {certificate.degree_name}
+                    </option>
+                  ))}
+                </select>
+              </div>
 
-            <div className="col-md-4">
-              <button
-                className="btn btn-primary"
-                onClick={createLink}
-                disabled={!certificate || certificate.status !== "minted" || isCreating}
-              >
-                {isCreating ? "Creating..." : "Generate Link"}
-              </button>
+              <div className="col-md-3">
+                <label className="form-label" htmlFor="link-duration">
+                  Link validity
+                </label>
+                <select
+                  id="link-duration"
+                  className="form-select"
+                  value={duration}
+                  onChange={(event) =>
+                    setDuration(
+                      Number(event.target.value) as VerificationLinkDurationDays
+                    )
+                  }
+                >
+                  {durations.map((item) => (
+                    <option key={item.value} value={item.value}>
+                      {item.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="col-md-4">
+                <button
+                  type="button"
+                  className="btn btn-primary"
+                  onClick={createLink}
+                  disabled={isCreating}
+                >
+                  {isCreating ? "Creating..." : "Generate Link"}
+                </button>
+              </div>
             </div>
-          </div>
+          )}
         </div>
       </div>
 
       <div className="card border-0 shadow-sm">
         <div className="card-body">
-          <h2 className="h5">Generated Links</h2>
+          <h2 className="h5">Generated Link History</h2>
+          <p className="text-muted">
+            Existing link tokens are not returned by the API. This history shows
+            when each link was created, when it expires, and whether it has been
+            revoked.
+          </p>
 
-          {links.length === 0 ? (
-            <p className="text-muted mb-0">No verification links generated yet.</p>
+          {isLoading ? (
+            <p className="mb-0">Loading links...</p>
+          ) : links.length === 0 ? (
+            <p className="text-muted mb-0">
+              No verification links generated yet.
+            </p>
           ) : (
             <div className="table-responsive">
               <table className="table align-middle">
                 <thead>
                   <tr>
-                    <th>Verification Link</th>
+                    <th>Certificate</th>
+                    <th>Created</th>
                     <th>Expires</th>
                     <th>Status</th>
-                    <th>Actions</th>
+                    <th>Action</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {links.map((link) => (
-                    <tr key={link.id}>
-                      <td className="text-break">{link.verification_url}</td>
-                      <td>{new Date(link.expires_at).toLocaleString()}</td>
-                      <td>{link.is_active ? "Active" : "Revoked / Expired"}</td>
-                      <td>
-                        <div className="d-flex gap-2">
+                  {links.map((link) => {
+                    const certificate = certificateByRegistrationId.get(
+                      link.registration_id
+                    );
+                    const status = getStatus(link);
+                    const canRevoke = status === "Active";
+
+                    return (
+                      <tr key={link.id}>
+                        <td>
+                          {certificate
+                            ? `${certificate.certificate_id} — ${certificate.degree_name}`
+                            : `Registration #${link.registration_id}`}
+                        </td>
+                        <td>{new Date(link.created_at).toLocaleString()}</td>
+                        <td>{new Date(link.expires_at).toLocaleString()}</td>
+                        <td>{status}</td>
+                        <td>
                           <button
-                            className="btn btn-sm btn-outline-primary"
-                            onClick={() => copyLink(link.verification_url)}
-                            disabled={!link.is_active}
-                          >
-                            Copy
-                          </button>
-                          <button
+                            type="button"
                             className="btn btn-sm btn-outline-danger"
                             onClick={() => revoke(link.id)}
-                            disabled={!link.is_active}
+                            disabled={!canRevoke || revokingId !== null}
                           >
-                            Revoke
+                            {revokingId === link.id ? "Revoking..." : "Revoke"}
                           </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>

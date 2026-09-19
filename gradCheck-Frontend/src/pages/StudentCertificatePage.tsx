@@ -3,73 +3,139 @@ import { Link } from "react-router-dom";
 import type { StudentCertificate } from "../models/Certificate";
 import { studentCertificateService } from "../services/StudentCertificateService";
 
+const formatStatus = (status: string) =>
+  status.replaceAll("_", " ").replace(/\b\w/g, (char) => char.toUpperCase());
+
 const StudentCertificatePage = () => {
-  const [certificate, setCertificate] = useState<StudentCertificate | null>(null);
+  const [certificates, setCertificates] = useState<StudentCertificate[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const [isDownloading, setIsDownloading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [downloadingId, setDownloadingId] = useState<number | null>(null);
 
   useEffect(() => {
     studentCertificateService
-      .getCertificate()
-      .then(setCertificate)
+      .getCertificates()
+      .then(setCertificates)
       .catch((err) =>
-        setError(err instanceof Error ? err.message : "Unable to load certificate.")
-      );
+        setError(
+          err instanceof Error ? err.message : "Unable to load certificates."
+        )
+      )
+      .finally(() => setIsLoading(false));
   }, []);
 
-  const download = async () => {
-    setIsDownloading(true);
+  const download = async (certificate: StudentCertificate) => {
+    setDownloadingId(certificate.id);
     setError(null);
+
     try {
-      await studentCertificateService.downloadCertificate();
+      await studentCertificateService.downloadCertificate(certificate.id);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Download failed.");
     } finally {
-      setIsDownloading(false);
+      setDownloadingId(null);
     }
   };
 
-  if (!certificate && !error) {
-    return <div className="container py-4">Loading certificate...</div>;
-  }
-
   return (
     <div className="container py-4">
-      <div className="d-flex justify-content-between align-items-center mb-4">
-        <h1 className="h3 mb-0">My Graduation Certificate</h1>
-        <Link className="btn btn-outline-primary" to="/student/verification-links">
+      <div className="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4">
+        <h1 className="h3 mb-0">My Graduation Certificates</h1>
+        <Link
+          className="btn btn-outline-primary"
+          to="/student/verification-links"
+        >
           Manage Verification Links
         </Link>
       </div>
 
       {error && <div className="alert alert-danger">{error}</div>}
 
-      {certificate && (
-        <div className="card border-0 shadow-sm">
-          <div className="card-body">
-            <dl className="row mb-4">
-              <dt className="col-sm-4">Student</dt>
-              <dd className="col-sm-8">{certificate.student_name}</dd>
-              <dt className="col-sm-4">Degree</dt>
-              <dd className="col-sm-8">{certificate.degree_name}</dd>
-              <dt className="col-sm-4">Issue Date</dt>
-              <dd className="col-sm-8">{certificate.issue_date}</dd>
-              <dt className="col-sm-4">Status</dt>
-              <dd className="col-sm-8">{certificate.status}</dd>
-              <dt className="col-sm-4">NFT Token ID</dt>
-              <dd className="col-sm-8 text-break">{certificate.token_id ?? "Not minted yet"}</dd>
-              <dt className="col-sm-4">Transaction Hash</dt>
-              <dd className="col-sm-8 text-break">{certificate.transaction_hash ?? "Not available"}</dd>
-            </dl>
+      {isLoading ? (
+        <p>Loading certificates...</p>
+      ) : certificates.length === 0 ? (
+        <div className="alert alert-info">No certificates found.</div>
+      ) : (
+        <div className="row g-4">
+          {certificates.map((certificate) => {
+            const canDownload =
+              certificate.status !== "pending_release" &&
+              Boolean(certificate.ipfs_cid);
 
-            <button
-              className="btn btn-primary"
-              onClick={download}
-              disabled={certificate.status !== "minted" || isDownloading}
-            >
-              {isDownloading ? "Downloading..." : "Download Certificate PDF"}
-            </button>
-          </div>
+            return (
+              <div className="col-12" key={certificate.id}>
+                <div className="card border-0 shadow-sm">
+                  <div className="card-body">
+                    <div className="d-flex flex-wrap justify-content-between gap-2 mb-3">
+                      <div>
+                        <h2 className="h5 mb-1">{certificate.degree_name}</h2>
+                        <p className="text-muted mb-0">
+                          {certificate.university_name}
+                        </p>
+                      </div>
+                      <span className="badge text-bg-secondary align-self-start">
+                        {formatStatus(certificate.status)}
+                      </span>
+                    </div>
+
+                    <dl className="row mb-4">
+                      <dt className="col-sm-4">Certificate ID</dt>
+                      <dd className="col-sm-8">{certificate.certificate_id}</dd>
+
+                      <dt className="col-sm-4">Conferral Date</dt>
+                      <dd className="col-sm-8">{certificate.conferral_date}</dd>
+
+                      <dt className="col-sm-4">Wallet Address</dt>
+                      <dd className="col-sm-8 text-break">
+                        {certificate.wallet_address}
+                      </dd>
+
+                      <dt className="col-sm-4">PDF Hash</dt>
+                      <dd className="col-sm-8 text-break">
+                        {certificate.pdf_hash ?? "Not available yet"}
+                      </dd>
+
+                      <dt className="col-sm-4">NFT Token ID</dt>
+                      <dd className="col-sm-8 text-break">
+                        {certificate.token_id ?? "Not minted yet"}
+                      </dd>
+
+                      <dt className="col-sm-4">Mint Transaction Hash</dt>
+                      <dd className="col-sm-8 text-break">
+                        {certificate.mint_tx_hash ?? "Not available"}
+                      </dd>
+
+                      <dt className="col-sm-4">Minted At</dt>
+                      <dd className="col-sm-8">
+                        {certificate.minted_at
+                          ? new Date(certificate.minted_at).toLocaleString()
+                          : "Not minted yet"}
+                      </dd>
+                    </dl>
+
+                    {certificate.status === "pending_release" && (
+                      <div className="alert alert-info">
+                        This certificate has not reached its conferral date yet.
+                        Verification and blockchain details are hidden until it
+                        is released.
+                      </div>
+                    )}
+
+                    <button
+                      type="button"
+                      className="btn btn-primary"
+                      onClick={() => download(certificate)}
+                      disabled={!canDownload || downloadingId !== null}
+                    >
+                      {downloadingId === certificate.id
+                        ? "Downloading..."
+                        : "Download Certificate PDF"}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
         </div>
       )}
     </div>

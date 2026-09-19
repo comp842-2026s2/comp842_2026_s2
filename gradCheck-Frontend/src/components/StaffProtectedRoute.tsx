@@ -1,5 +1,5 @@
 import { Navigate, Outlet } from "react-router-dom";
-import { authService } from "../services/StudentAuthService";
+import { authService } from "../services/AuthService";
 
 const StaffProtectedRoute = () => {
   return authService.isStaff() ? (

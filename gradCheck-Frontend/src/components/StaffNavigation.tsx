@@ -1,5 +1,5 @@
 import { NavLink, useNavigate } from "react-router-dom";
-import { authService } from "../services/StudentAuthService";
+import { authService } from "../services/AuthService";
 
 const StaffNavigation = () => {
   const navigate = useNavigate();

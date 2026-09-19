@@ -1,12 +1,28 @@
 import { API_BASE_URL } from "../config/ApiConfig";
 import { authStorage } from "../utils/AuthStorage";
 
+const parseErrorMessage = async (response: Response): Promise<string> => {
+  try {
+    const data = (await response.json()) as {
+      detail?: string;
+      message?: string;
+    };
+
+    return (
+      data.detail ||
+      data.message ||
+      `Request failed (${response.status})`
+    );
+  } catch {
+    return `Request failed (${response.status})`;
+  }
+};
+
 export class HttpClient {
-  async request<T>(
-    path: string,
-    options: RequestInit = {},
-    includeAuth = true
-  ): Promise<T> {
+  private buildHeaders(
+    options: RequestInit,
+    includeAuth: boolean
+  ): Headers {
     const headers = new Headers(options.headers);
 
     if (!headers.has("Content-Type") && options.body) {
@@ -15,34 +31,64 @@ export class HttpClient {
 
     if (includeAuth) {
       const token = authStorage.getAccessToken();
-      if (token) {
-        headers.set("Authorization", `Bearer ${token}`);
+
+      if (!token) {
+        throw new Error("Your login session is missing. Please log in again.");
       }
+
+      headers.set("Authorization", `Bearer ${token}`);
     }
 
+    return headers;
+  }
+
+  async request<T>(
+    path: string,
+    options: RequestInit = {},
+    includeAuth = true
+  ): Promise<T> {
     const response = await fetch(`${API_BASE_URL}${path}`, {
       ...options,
-      headers,
+      headers: this.buildHeaders(options, includeAuth),
     });
 
-    let data: unknown = null;
-
-    if (response.status !== 204) {
-      try {
-        data = await response.json();
-      } catch {
-        data = null;
+    if (!response.ok) {
+      if (includeAuth && response.status === 401) {
+        authStorage.clear();
       }
+
+      throw new Error(await parseErrorMessage(response));
     }
+
+    if (response.status === 204) {
+      return undefined as T;
+    }
+
+    return (await response.json()) as T;
+  }
+
+  async requestBlob(
+    path: string,
+    options: RequestInit = {},
+    includeAuth = true
+  ): Promise<{ blob: Blob; response: Response }> {
+    const response = await fetch(`${API_BASE_URL}${path}`, {
+      ...options,
+      headers: this.buildHeaders(options, includeAuth),
+    });
 
     if (!response.ok) {
-      const errorData = data as { detail?: string; message?: string } | null;
-      throw new Error(
-        errorData?.detail || errorData?.message || `Request failed (${response.status})`
-      );
+      if (includeAuth && response.status === 401) {
+        authStorage.clear();
+      }
+
+      throw new Error(await parseErrorMessage(response));
     }
 
-    return data as T;
+    return {
+      blob: await response.blob(),
+      response,
+    };
   }
 }
 

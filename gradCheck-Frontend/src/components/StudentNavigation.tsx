@@ -1,11 +1,11 @@
 import { NavLink, useNavigate } from "react-router-dom";
-import { studentAuthService } from "../services/StudentAuthService";
+import { authService } from "../services/AuthService";
 
 const StudentNavigation = () => {
   const navigate = useNavigate();
 
   const logout = () => {
-    studentAuthService.logout();
+    authService.logout();
     navigate("/login", { replace: true });
   };
 
@@ -21,6 +21,9 @@ const StudentNavigation = () => {
           type="button"
           data-bs-toggle="collapse"
           data-bs-target="#studentNavigation"
+          aria-controls="studentNavigation"
+          aria-expanded="false"
+          aria-label="Toggle navigation"
         >
           <span className="navbar-toggler-icon" />
         </button>
@@ -31,14 +34,18 @@ const StudentNavigation = () => {
               Dashboard
             </NavLink>
             <NavLink className="nav-link" to="/student/certificate">
-              Certificate
+              Certificates
             </NavLink>
             <NavLink className="nav-link" to="/student/verification-links">
               Verification Links
             </NavLink>
           </div>
 
-          <button className="btn btn-outline-light" onClick={logout}>
+          <button
+            type="button"
+            className="btn btn-outline-light"
+            onClick={logout}
+          >
             Logout
           </button>
         </div>

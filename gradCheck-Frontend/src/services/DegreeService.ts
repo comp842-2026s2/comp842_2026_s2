@@ -4,7 +4,11 @@ import { httpClient } from "./HttpClient";
 
 class DegreeService {
   getDegrees(): Promise<Degree[]> {
-    return httpClient.request<Degree[]>(API_ENDPOINTS.degrees.list, {}, false);
+    return httpClient.request<Degree[]>(
+      API_ENDPOINTS.degrees.list,
+      {},
+      false
+    );
   }
 }
 

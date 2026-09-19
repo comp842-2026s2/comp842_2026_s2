@@ -1,31 +1,39 @@
 import { API_ENDPOINTS } from "../config/ApiConfig";
 import type {
   CreateVerificationLinkRequest,
-  VerificationLink,
+  CreatedVerificationLink,
+  RevokeVerificationLinkResponse,
+  VerificationLinkSummary,
 } from "../models/VerificationLink";
 import { authStorage } from "../utils/AuthStorage";
 import { httpClient } from "./HttpClient";
 
-function currentStudentId(): string {
-  const studentId = authStorage.getCurrentStudentId();
-  if (!studentId) {
-    throw new Error("Not logged in.");
-  }
-  return studentId;
-}
-
 class VerificationLinkService {
-  getLinks(): Promise<VerificationLink[]> {
-    return httpClient.request<VerificationLink[]>(
-      API_ENDPOINTS.students.verificationLinks(currentStudentId())
+  private getStudentId(): string {
+    const studentId = authStorage.getLoginId();
+
+    if (!studentId) {
+      throw new Error("Student ID is missing from the login session.");
+    }
+
+    return studentId;
+  }
+
+  getLinks(): Promise<VerificationLinkSummary[]> {
+    const studentId = this.getStudentId();
+
+    return httpClient.request<VerificationLinkSummary[]>(
+      API_ENDPOINTS.students.verificationLinks(studentId)
     );
   }
 
   createLink(
     request: CreateVerificationLinkRequest
-  ): Promise<VerificationLink> {
-    return httpClient.request<VerificationLink>(
-      API_ENDPOINTS.students.verificationLinks(currentStudentId()),
+  ): Promise<CreatedVerificationLink> {
+    const studentId = this.getStudentId();
+
+    return httpClient.request<CreatedVerificationLink>(
+      API_ENDPOINTS.students.verificationLinks(studentId),
       {
         method: "POST",
         body: JSON.stringify(request),
@@ -33,9 +41,11 @@ class VerificationLinkService {
     );
   }
 
-  revokeLink(linkId: number): Promise<void> {
-    return httpClient.request<void>(
-      `${API_ENDPOINTS.students.verificationLinks(currentStudentId())}/${linkId}`,
+  revokeLink(linkId: number): Promise<RevokeVerificationLinkResponse> {
+    const studentId = this.getStudentId();
+
+    return httpClient.request<RevokeVerificationLinkResponse>(
+      API_ENDPOINTS.students.verificationLink(studentId, linkId),
       { method: "DELETE" }
     );
   }
