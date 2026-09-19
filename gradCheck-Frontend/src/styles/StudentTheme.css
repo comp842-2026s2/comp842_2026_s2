@@ -1,0 +1,53 @@
+:root {
+  --gradcheck-purple-dark: #3f1d68;
+  --gradcheck-purple-dark-hover: #512786;
+  --gradcheck-purple-light: #f3e8ff;
+  --gradcheck-purple-accent: #6f42c1;
+}
+
+.student-navigation {
+  background-color: var(--gradcheck-purple-dark) !important;
+}
+
+.student-navigation .navbar-brand,
+.student-navigation .nav-link {
+  color: rgba(255, 255, 255, 0.86);
+}
+
+.student-navigation .navbar-brand {
+  color: #fff;
+  font-weight: 700;
+}
+
+.student-navigation .nav-link:hover,
+.student-navigation .nav-link.active {
+  color: #fff;
+}
+
+.student-page-background {
+  min-height: calc(100vh - 56px);
+  background-color: var(--gradcheck-purple-light);
+}
+
+.student-page-background .btn-primary {
+  background-color: var(--gradcheck-purple-accent);
+  border-color: var(--gradcheck-purple-accent);
+}
+
+.student-page-background .btn-primary:hover,
+.student-page-background .btn-primary:focus {
+  background-color: var(--gradcheck-purple-dark-hover);
+  border-color: var(--gradcheck-purple-dark-hover);
+}
+
+.student-page-background .btn-outline-primary {
+  color: var(--gradcheck-purple-accent);
+  border-color: var(--gradcheck-purple-accent);
+}
+
+.student-page-background .btn-outline-primary:hover,
+.student-page-background .btn-outline-primary:focus {
+  color: #fff;
+  background-color: var(--gradcheck-purple-accent);
+  border-color: var(--gradcheck-purple-accent);
+}

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import type { StudentCertificate } from "../models/Certificate";
 import { studentProfileService } from "../services/StudentProfileService";
 
@@ -7,6 +7,8 @@ const formatStatus = (status: string) =>
   status.replaceAll("_", " ").replace(/\b\w/g, (char) => char.toUpperCase());
 
 const StudentDashboardPage = () => {
+  const location = useLocation();
+  const successMessage = (location.state as { message?: string } | null)?.message;
   const [registrations, setRegistrations] = useState<StudentCertificate[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -32,6 +34,10 @@ const StudentDashboardPage = () => {
   return (
     <div className="container py-4">
       <h1 className="h3 mb-4">Student Dashboard</h1>
+
+      {successMessage && (
+        <div className="alert alert-success">{successMessage}</div>
+      )}
 
       {error && <div className="alert alert-danger">{error}</div>}
 
@@ -65,9 +71,17 @@ const StudentDashboardPage = () => {
                   <p className="mb-3">
                     Minted: <strong>{mintedCount}</strong>
                   </p>
-                  <Link className="btn btn-primary" to="/student/certificate">
-                    View Certificates
-                  </Link>
+                  <div className="d-flex flex-wrap gap-2">
+                    <Link className="btn btn-primary" to="/student/certificate">
+                      View Certificates
+                    </Link>
+                    <Link
+                      className="btn btn-outline-primary"
+                      to="/student/certificate/register"
+                    >
+                      Register Certificate
+                    </Link>
+                  </div>
                 </div>
               </div>
             </div>

@@ -1,5 +1,3 @@
-// models/Registration.ts
-
 export interface RegistrationRequest {
   student_id: string;
   student_name: string;

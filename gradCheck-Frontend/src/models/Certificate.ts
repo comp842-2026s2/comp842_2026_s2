@@ -5,13 +5,6 @@ export type CertificateStatus =
   | "failed"
   | "pending_release";
 
-/**
- * Shape returned by GET /students/{studentid} and
- * GET /students/{studentid}/certificate.
- *
- * `id` is the certificates table row id. The backend still refers to this
- * value as registration_id in verification-link and download APIs.
- */
 export interface StudentCertificate {
   id: number;
   certificate_id: string;
@@ -28,4 +21,18 @@ export interface StudentCertificate {
   mint_tx_hash: string | null;
   minted_at: string | null;
   registered_at: string;
+}
+
+export interface StudentCertificateRegistrationRequest {
+  student_id: string;
+  student_name: string;
+  degree_id: number;
+  wallet_address: string;
+  conferral_date: string;
+}
+
+export interface StudentCertificateRegistrationResponse {
+  registration_id: number;
+  status: "registered" | string;
+  login_created: boolean;
 }

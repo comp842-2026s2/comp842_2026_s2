@@ -5,7 +5,7 @@ export interface CreateVerificationLinkRequest {
   expires_in_days: VerificationLinkDurationDays;
 }
 
-/** Metadata returned by GET /students/{studentid}/verification-links. */
+
 export interface VerificationLinkSummary {
   id: number;
   registration_id: number;
@@ -14,10 +14,7 @@ export interface VerificationLinkSummary {
   revoked: boolean;
 }
 
-/**
- * The raw token is intentionally returned only once when the link is created.
- * The backend stores only its SHA-256 hash.
- */
+
 export interface CreatedVerificationLink {
   id: number;
   token: string;

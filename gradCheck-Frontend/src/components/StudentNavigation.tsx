@@ -10,7 +10,7 @@ const StudentNavigation = () => {
   };
 
   return (
-    <nav className="navbar navbar-expand-lg navbar-dark bg-primary">
+    <nav className="navbar navbar-expand-lg navbar-dark student-navigation">
       <div className="container">
         <NavLink className="navbar-brand" to="/student/dashboard">
           GradCheck
@@ -35,6 +35,9 @@ const StudentNavigation = () => {
             </NavLink>
             <NavLink className="nav-link" to="/student/certificate">
               Certificates
+            </NavLink>
+            <NavLink className="nav-link" to="/student/certificate/register">
+              Register Certificate
             </NavLink>
             <NavLink className="nav-link" to="/student/verification-links">
               Verification Links
