@@ -40,6 +40,16 @@ class StudentAuthService {
   isStaff(): boolean {
     return authStorage.get()?.login_type === 2;
   }
+
+  // There's no separate role/tier column yet — the team's fixed rule is
+  // simply "only the account whose login_id is literally 'admin' can
+  // register new staff", checked the same way on the backend
+  // (require_super_admin in main.py). A regular staff account is
+  // isStaff() === true but isSuperAdmin() === false.
+  isSuperAdmin(): boolean {
+    const auth = authStorage.get();
+    return auth?.login_type === 2 && auth?.login_id === "admin";
+  }
 }
 
 export const studentAuthService = new StudentAuthService();

@@ -30,9 +30,13 @@ const StaffNavigation = () => {
             <NavLink className="nav-link" to="/staff/dashboard">
               Dashboard
             </NavLink>
-            <NavLink className="nav-link" to="/staff/register">
-              Register Staff
-            </NavLink>
+            {/* Only the fixed "admin" account can register new staff —
+                regular staff accounts don't even see the link. */}
+            {authService.isSuperAdmin() && (
+              <NavLink className="nav-link" to="/staff/register">
+                Register Staff
+              </NavLink>
+            )}
             <NavLink className="nav-link" to="/staff/certificates">
               Certificates
             </NavLink>

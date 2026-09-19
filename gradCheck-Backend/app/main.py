@@ -77,6 +77,20 @@ def require_admin(user: dict = Depends(get_current_user)):
     return user
 
 
+def require_super_admin(user: dict = Depends(require_admin)):
+    """Same as require_admin, but further restricted to the single fixed
+    "admin" account (login_id == "admin") — not just any staff/admin
+    login_type. There's no separate role/tier column for this yet; the
+    fixed account is what the team decided on, per Aung: only the "admin"
+    account should be able to create new staff, not staff creating staff."""
+    if user.get("sub") != "admin":
+        raise HTTPException(
+            status_code=403,
+            detail="Only the admin account can register new staff",
+        )
+    return user
+
+
 def require_self_or_admin(studentid: str, user: dict = Depends(get_current_user)):
     """For the /students/{studentid}/... student-module endpoints: allows
     either the student themselves (their token's login_id == studentid) or
@@ -118,11 +132,12 @@ class LoginRegisterRequest(BaseModel):
 
 
 @app.post("/login/register")
-def register_login(payload: LoginRegisterRequest, admin: dict = Depends(require_admin)):
-    """Create a new login_info account (student or admin/staff). Admin
-    token required — this replaces manually INSERT-ing a bcrypt hash via
-    Workbench. The password is hashed here; it's never stored in plaintext
-    and this endpoint never returns it back."""
+def register_login(payload: LoginRegisterRequest, admin: dict = Depends(require_super_admin)):
+    """Create a new login_info account (student or admin/staff). Only the
+    "admin" account can call this (not just any staff account) — this
+    replaces manually INSERT-ing a bcrypt hash via Workbench. The password
+    is hashed here; it's never stored in plaintext and this endpoint never
+    returns it back."""
     if payload.login_type not in (LOGIN_TYPE_STUDENT, LOGIN_TYPE_ADMIN):
         raise HTTPException(status_code=400, detail="login_type must be 1 (student) or 2 (admin/staff)")
 
@@ -165,8 +180,9 @@ def list_all_staff(admin: dict = Depends(require_admin)):
 
 
 @app.post("/staff")
-def add_staff(payload: StaffRequest, admin: dict = Depends(require_admin)):
-    """Register a new staff member. Admin only."""
+def add_staff(payload: StaffRequest, admin: dict = Depends(require_super_admin)):
+    """Register a new staff member. Only the "admin" account can do this —
+    a regular staff account cannot register other staff."""
     try:
         new_id = staff_repo.create(
             staff_id=payload.staff_id,

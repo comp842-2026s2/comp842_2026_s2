@@ -5,6 +5,7 @@ import StaffRegistration from "../components/StaffRegistration";
 import CertificateGeneration from "../components/CertificateGeneration";
 import AdminDashboard from "../components/AdminDashboard";
 import StaffProtectedRoute from "../components/StaffProtectedRoute";
+import SuperAdminProtectedRoute from "../components/SuperAdminProtectedRoute";
 import StaffLayout from "../layouts/StaffLayout";
 
 // Login is shared with the Student side (one top-level /login, branching on
@@ -27,10 +28,15 @@ const StaffRoutes = () => {
                 <Route element={<StaffLayout />}>
                     <Route path="home" element={<StaffHome />} />
 
-                    <Route
-                        path="register"
-                        element={<StaffRegistration />}
-                    />
+                    {/* Only the fixed "admin" account can reach this —
+                        see SuperAdminProtectedRoute + require_super_admin
+                        in main.py for the matching backend check. */}
+                    <Route element={<SuperAdminProtectedRoute />}>
+                        <Route
+                            path="register"
+                            element={<StaffRegistration />}
+                        />
+                    </Route>
 
                     <Route
                         path="certificates"

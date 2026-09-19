@@ -98,9 +98,13 @@ const LoginPage = () => {
                 </button>
               </form>
 
-              <p className="text-center mt-3 mb-0">
+              <p className="text-center mt-3 mb-1">
                 Need an account?{" "}
                 <Link to="/student/register">Register as a student</Link>
+              </p>
+              <p className="text-center text-muted small mb-0">
+                Staff accounts are created by an existing admin — ask
+                yours to register you under Staff → Register Staff.
               </p>
             </div>
           </div>
