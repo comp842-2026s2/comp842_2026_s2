@@ -4,13 +4,29 @@ import { authStorage } from "../utils/AuthStorage";
 import { httpClient } from "./HttpClient";
 
 class StudentCertificateService {
-  getCertificate(): Promise<StudentCertificate> {
-    return httpClient.request<StudentCertificate>(
-      API_ENDPOINTS.students.certificate
+  async getCertificate(): Promise<StudentCertificate> {
+    const studentId = authStorage.getCurrentStudentId();
+    if (!studentId) {
+      throw new Error("Not logged in.");
+    }
+
+    // Same "list, take the first" adapter as StudentProfileService — a
+    // student can have more than one certificate (one per degree).
+    const rows = await httpClient.request<StudentCertificate[]>(
+      API_ENDPOINTS.students.certificate(studentId)
     );
+    if (rows.length === 0) {
+      throw new Error("No certificate found.");
+    }
+    return rows[0];
   }
 
   async downloadCertificate(): Promise<void> {
+    const studentId = authStorage.getCurrentStudentId();
+    if (!studentId) {
+      throw new Error("Not logged in.");
+    }
+
     const token = authStorage.getAccessToken();
     const headers = new Headers();
 
@@ -19,7 +35,7 @@ class StudentCertificateService {
     }
 
     const response = await fetch(
-      `${API_BASE_URL}${API_ENDPOINTS.students.certificateDownload}`,
+      `${API_BASE_URL}${API_ENDPOINTS.students.certificateDownload(studentId)}`,
       { headers }
     );
 

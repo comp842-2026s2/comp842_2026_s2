@@ -29,4 +29,11 @@ export const authStorage = {
   getAccessToken(): string | null {
     return this.get()?.access_token ?? null;
   },
+
+  // The backend's /login now echoes back login_id (added 2026-09-19) so we
+  // know which studentid to build /students/{studentid}/... URLs with,
+  // instead of a placeholder "me".
+  getCurrentStudentId(): string | null {
+    return this.get()?.login_id ?? null;
+  },
 };

@@ -101,7 +101,14 @@ def login(payload: LoginRequest):
         raise HTTPException(status_code=401, detail="Invalid login_id or password")
 
     token = create_access_token(login_id=user["login_id"], login_type=user["login_type"])
-    return {"access_token": token, "token_type": "bearer", "login_type": user["login_type"]}
+    return {
+        "access_token": token,
+        "token_type": "bearer",
+        "login_type": user["login_type"],
+        # So the Frontend knows "who am I" without decoding the JWT itself —
+        # needed to build /students/{login_id}/... URLs after login.
+        "login_id": user["login_id"],
+    }
 
 
 class LoginRegisterRequest(BaseModel):
@@ -199,10 +206,13 @@ class RegistrationRequest(BaseModel):
 
 
 @app.post("/register")
-def register_student(payload: RegistrationRequest, admin: dict = Depends(require_admin)):
+def register_student(payload: RegistrationRequest):
     """Register a new student for graduation. Backend for the
     'Registration' page — Frontend calls this when the form is submitted.
-    Requires an admin login token.
+
+    Public/no login required (2026-09-19 — was admin-only) so a student can
+    self-register instead of a staff member creating every account by hand.
+    Staff can still use this same endpoint on a student's behalf if needed.
 
     If student_password is provided, a login_info account is created for
     the student in the same call (login_id = student_id, login_type =
@@ -249,21 +259,19 @@ def register_student(payload: RegistrationRequest, admin: dict = Depends(require
 def _pending_release_view(row):
     """Same 'hide details before conferral_date' shape /verify uses —
     reused by the student's own certificate view too, so a pre-generated
-    certificate doesn't leak its hash/CID before it's officially conferred."""
+    certificate doesn't leak its hash/CID before it's officially conferred.
+
+    Copies the whole row and only blanks out the proof-of-existence fields
+    (pdf_hash/ipfs_cid/token_id/mint_tx_hash/minted_at) — everything else
+    (certificate_id, university_name, wallet_address, registered_at, ...)
+    passes through untouched, so this doesn't silently drop fields if the
+    repository's row shape grows again later."""
     if row["conferral_date"] > date.today():
-        return {
-            "id": row["id"],
-            "student_id": row["student_id"],
-            "student_name": row["student_name"],
-            "degree_name": row["degree_name"],
-            "conferral_date": row["conferral_date"],
-            "status": "pending_release",
-            "pdf_hash": None,
-            "ipfs_cid": None,
-            "token_id": None,
-            "mint_tx_hash": None,
-            "minted_at": None,
-        }
+        hidden = dict(row)
+        hidden["status"] = "pending_release"
+        for field in ("pdf_hash", "ipfs_cid", "token_id", "mint_tx_hash", "minted_at"):
+            hidden[field] = None
+        return hidden
     return row
 
 
