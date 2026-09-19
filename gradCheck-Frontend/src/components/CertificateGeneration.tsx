@@ -4,10 +4,9 @@ import { staffService } from "../services/StaffRegistrationService";
 import type { StudentCredential } from "../models/Staff";
 
 const isTokenGenerated = (student: StudentCredential) =>
-  Boolean(student.mint_tx_hash);
-
+  Boolean(student.mint_tx_hash) ; //|| student.token_id != null || student.status === "minted"
 const isPdfGenerated = (student: StudentCredential) =>
-  Boolean(student.pdf_hash);
+  Boolean(student.pdf_hash) || isTokenGenerated(student); //|| student.status === "pdf_generated" 
 
 function CertificateGeneration() {
   const [students, setStudents] = useState<StudentCredential[]>([]);
@@ -66,7 +65,8 @@ function CertificateGeneration() {
         
         await staffService.generatePdf(student.certificate_id, student.id);
       } else {
-        await staffService.generateToken(student.certificate_id, student.id);
+        //await staffService.generateToken(student.certificate_id, student.id);
+        await staffService.generateToken(student.certificate_id);
       }
       if (!mounted.current) return;
       setMessage(`${action === "pdf" ? "PDF" : "Token"} generation request completed for ${student.student_name}.`);
