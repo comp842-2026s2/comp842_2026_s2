@@ -463,7 +463,7 @@
 
 /* =========================================================
    Pipeline Status Badges
-   registered -> pdf_generated -> minted / failed
+   registered -> pdf_generated -> minted
    ========================================================= */
 
 .gradcheck-status {

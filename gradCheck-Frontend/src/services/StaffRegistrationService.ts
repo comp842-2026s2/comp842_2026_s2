@@ -61,16 +61,15 @@ class StaffService {
     }>("/generate-pdf", { method: "POST" });
   }
 
-  generatePdf(certificateId: string, registrationId: number) {
-    return httpClient.request("/generate-pdf", {
+  generatePdf(certificateId: string) {
+    return httpClient.request(`/generate-pdf/${encodeURIComponent(certificateId)}`, {
       method: "POST",
-      body: JSON.stringify({ certificate_id: certificateId, registration_id: registrationId }),
     });
   }
 
   generateToken(certificateId: string) {
     return httpClient.request(`/generate-token/${encodeURIComponent(certificateId)}`, {
-      method: "POST",
+      method: "POST"
     });
   }
 

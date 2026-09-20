@@ -32,16 +32,12 @@ function AdminDashboard() {
 
   const total = students.length;
 
-  const registered = students.filter(
-    (s) => s.status === "registered"
-  ).length;
-
   const pdfGenerated = students.filter(
-    (s) => s.status === "pdf_generated"
+    (s) => s.status === "pdf_generated" || s.status === "minted"
   ).length;
 
   const minted = students.filter(
-    (s) => s.status === "minted"
+  (s) => s.status === "minted"
   ).length;
 
   return (
@@ -68,11 +64,6 @@ function AdminDashboard() {
         <div className="gradcheck-summary-card">
           <span>Total</span>
           <strong>{total}</strong>
-        </div>
-
-        <div className="gradcheck-summary-card">
-          <span>Registered</span>
-          <strong>{registered}</strong>
         </div>
 
         <div className="gradcheck-summary-card">

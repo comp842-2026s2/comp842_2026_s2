@@ -61,11 +61,8 @@ function CertificateGeneration() {
      console.log("Generation request:", { action, certificateId: student.certificate_id, registrationId: student.id });
     try {
       if (action === "pdf") {
-
-        
-        await staffService.generatePdf(student.certificate_id, student.id);
+        await staffService.generatePdf(student.certificate_id);
       } else {
-        //await staffService.generateToken(student.certificate_id, student.id);
         await staffService.generateToken(student.certificate_id);
       }
       if (!mounted.current) return;
