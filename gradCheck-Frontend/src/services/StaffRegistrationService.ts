@@ -13,9 +13,10 @@ interface StaffRow {
 }
 
 class StaffService {
-  // Calls the real backend routes (/staff, /students, /generate-pdf,
-  // /generate-token/{certificate_id}) via httpClient, which attaches the
-  // logged-in admin/staff's Bearer token automatically.
+  // 2026-09-19: rewritten to call the real backend routes (/staff,
+  // /students, /generate-pdf — not the imagined /admin/* + cookie-session
+  // API this used to call) via httpClient, which attaches the logged-in
+  // admin/staff's Bearer token automatically.
 
   async registerStaff(
     request: StaffRegistrationRequest
@@ -53,8 +54,6 @@ class StaffService {
     return httpClient.request<StudentCredential[]>("/students");
   }
 
-  // Bulk: processes every certificate still in "registered" status.
-  // Kept for the "Generate PDF (all pending)" button.
   generateCertificates() {
     return httpClient.request<{
       processed: number;
@@ -62,28 +61,26 @@ class StaffService {
     }>("/generate-pdf", { method: "POST" });
   }
 
-  // Per-certificate: backend route is POST /generate-pdf/{certificate_id}
-  // (path param, no body) — mirrors generateToken's shape. Lets a single
-  // row's "Generate PDF" button generate just that student's certificate
-  // instead of re-running the whole pending batch.
-  generatePdf(certificateId: string) {
-    return httpClient.request<StudentCredential>(
-      `/generate-pdf/${encodeURIComponent(certificateId)}`,
-      { method: "POST" }
-    );
+  generatePdf(certificateId: string, registrationId: number) {
+    return httpClient.request("/generate-pdf", {
+      method: "POST",
+      body: JSON.stringify({ certificate_id: certificateId, registration_id: registrationId }),
+    });
   }
 
-  // Backend route is POST /generate-token/{certificate_id} — the
-  // certificate id is a PATH param, not a JSON body, and it doesn't take
-  // registration_id at all (see main.py: generate_token(certificate_id)).
-  // It's still a stub server-side (no real smart-contract call yet,
-  // that's Han Zaw's piece), but it does write a token_id/mint_tx_hash/
-  // minted_at back to the DB and flip status to "minted", so the full
-  // request/response contract is real and safe to build against now.
   generateToken(certificateId: string) {
-    return httpClient.request<StudentCredential>(
-      `/generate-token/${encodeURIComponent(certificateId)}`,
-      { method: "POST" }
+    return httpClient.request(`/generate-token/${encodeURIComponent(certificateId)}`, {
+      method: "POST",
+    });
+  }
+
+  mintTokens(): Promise<never> {
+    // There's no /admin/mint (or any minting endpoint) on the backend yet —
+    // that's Han Zaw's smart-contract piece and hasn't landed. Nothing in
+    // the UI currently calls this; it throws instead of silently hitting
+    // a 404 if something is wired to it before that piece exists.
+    return Promise.reject(
+      new Error("Blockchain minting isn't available yet.")
     );
   }
 }
