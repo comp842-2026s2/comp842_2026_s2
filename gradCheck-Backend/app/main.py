@@ -458,6 +458,36 @@ def generate_pdf_batch(admin: dict = Depends(require_admin)):
     return {"processed": len(results), "results": results}
 
 
+@app.post("/generate-pdf/{certificate_id}")
+def generate_pdf_single(certificate_id: str, admin: dict = Depends(require_admin)):
+    """Generate the PDF for exactly one certificate (not the whole
+    'registered' batch) - mirrors generate_token's per-certificate shape,
+    so Staff can regenerate/generate a single student's PDF from their row
+    without re-processing everyone else who's still pending."""
+    certificate = registration_repo.get_by_certificate_id(certificate_id)
+    if certificate is None:
+        raise HTTPException(status_code=404, detail="Certificate not found")
+
+    if certificate["status"] != "registered":
+        raise HTTPException(
+            status_code=400,
+            detail="PDF has already been generated for this certificate",
+        )
+
+    pdf_bytes = render_degree_pdf(
+        registration_id=certificate["id"],
+        student_id=certificate["student_id"],
+        student_name=certificate["student_name"],
+        degree_name=certificate["degree_name"],
+        conferral_date=str(certificate["conferral_date"]),
+    )
+    pdf_hash = hash_pdf(pdf_bytes)
+    cid = upload_to_ipfs(pdf_bytes, filename=f"{certificate['student_id']}.pdf")
+    registration_repo.update_pdf_info(certificate["id"], pdf_hash, cid)
+
+    return registration_repo.get_by_certificate_id(certificate_id)
+
+
 @app.post("/generate-token/{certificate_id}")
 def generate_token(certificate_id: str, admin: dict = Depends(require_admin)):
     """Mint the Soulbound Token for one certificate. Keyed by

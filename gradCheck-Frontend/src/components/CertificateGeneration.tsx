@@ -3,12 +3,10 @@ import { Link } from "react-router-dom";
 import { staffService } from "../services/StaffRegistrationService";
 import type { StudentCredential } from "../models/Staff";
 
-// Per-row PDF generation isn't wired up — the backend only has a BULK
-// pdf endpoint (POST /generate-pdf, no body, no certificate_id param):
-// it processes every "registered" row in one call. Use the
-// "Generate PDF (all pending)" button above for that. Mint Token IS
-// wired up per-row below, via staffService.generateToken(certificate_id),
-// since the backend route (POST /generate-token/{certificate_id}) takes
+// Both actions are available two ways: bulk ("Generate PDF (all pending)"
+// above, for everyone still "registered" in one call) and per-row, via
+// staffService.generatePdf(certificate_id) / generateToken(certificate_id)
+// — each backed by its own POST .../{certificate_id} route that takes
 // exactly one certificate at a time.
 const hasToken = (student: StudentCredential) =>
   student.token_id != null || student.status === "minted";
@@ -55,6 +53,31 @@ function CertificateGeneration() {
     } finally {
       busy.current = false;
       if (mounted.current) setBulkGenerating(false);
+    }
+  };
+
+  const handleGeneratePdf = async (student: StudentCredential) => {
+    if (busy.current || loading || hasPdf(student)) return;
+
+    busy.current = true;
+    setActive({ id: student.id, action: "pdf" });
+    setError("");
+    setMessage("");
+    try {
+      await staffService.generatePdf(student.certificate_id);
+      if (!mounted.current) return;
+      setMessage(`PDF generation request completed for ${student.student_name}.`);
+      try {
+        const data = await staffService.getRegistrations();
+        if (mounted.current) setStudents(data);
+      } catch (err) {
+        if (mounted.current) setError(`The request completed, but the list could not be refreshed. Reload before trying again. ${err instanceof Error ? err.message : ""}`);
+      }
+    } catch (err) {
+      if (mounted.current) setError(err instanceof Error ? err.message : "PDF generation failed.");
+    } finally {
+      busy.current = false;
+      if (mounted.current) setActive(null);
     }
   };
 
@@ -126,7 +149,9 @@ function CertificateGeneration() {
                   </span>
                 </td>
                 <td>{hasPdf(student) ? <span>Generated</span> : (
-                  <span className="text-muted small">Use "Generate PDF (all pending)" above</span>
+                  <button type="button" className="gradcheck-primary-button" disabled={active !== null} aria-label={`Generate PDF for ${student.student_name}`} onClick={() => void handleGeneratePdf(student)}>
+                    {active?.id === student.id && active.action === "pdf" ? "Generating…" : "Generate PDF"}
+                  </button>
                 )}</td>
                 <td>{hasToken(student) ? <span>{student.token_id != null ? `Token ${student.token_id}` : "Generated"}</span> : (
                   <button type="button" className="gradcheck-primary-button" disabled={active !== null || !hasPdf(student)} title={!hasPdf(student) ? "Generate the PDF first." : undefined} aria-label={`Mint Token for ${student.student_name}`} onClick={() => void handleGenerateToken(student)}>

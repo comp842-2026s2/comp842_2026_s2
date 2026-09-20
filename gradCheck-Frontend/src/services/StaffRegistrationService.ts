@@ -53,16 +53,24 @@ class StaffService {
     return httpClient.request<StudentCredential[]>("/students");
   }
 
-  // Backend only has a BULK pdf endpoint (POST /generate-pdf, no body,
-  // no path param) — it processes every "registered" row in one call.
-  // There is no per-certificate PDF endpoint, so there's no per-row
-  // generatePdf(certificateId) here — see CertificateGeneration.tsx's
-  // "Generate PDF (all pending)" button, which is the only PDF action.
+  // Bulk: processes every certificate still in "registered" status.
+  // Kept for the "Generate PDF (all pending)" button.
   generateCertificates() {
     return httpClient.request<{
       processed: number;
       results: Array<{ registration_id: number; student_id: string; pdf_hash: string; ipfs_cid: string }>;
     }>("/generate-pdf", { method: "POST" });
+  }
+
+  // Per-certificate: backend route is POST /generate-pdf/{certificate_id}
+  // (path param, no body) — mirrors generateToken's shape. Lets a single
+  // row's "Generate PDF" button generate just that student's certificate
+  // instead of re-running the whole pending batch.
+  generatePdf(certificateId: string) {
+    return httpClient.request<StudentCredential>(
+      `/generate-pdf/${encodeURIComponent(certificateId)}`,
+      { method: "POST" }
+    );
   }
 
   // Backend route is POST /generate-token/{certificate_id} — the
