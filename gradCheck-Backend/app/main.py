@@ -2,17 +2,23 @@
 
 import hashlib
 import secrets
+import os
+from dotenv import load_dotenv
+load_dotenv()
+
+BADGE_IMAGE_CID = os.environ["BADGE_IMAGE_CID"]
 from datetime import date, datetime, timedelta
 from typing import Optional
 
-from fastapi import FastAPI, HTTPException, Depends, Response
+from fastapi import FastAPI, HTTPException, Depends, Response, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel
 
 from services.pdf_generator import render_degree_pdf
 from services.hasher import hash_pdf
-from services.ipfs_client import upload_to_ipfs, download_from_ipfs
+from services.ipfs_client import upload_to_ipfs, download_from_ipfs, upload_json_to_ipfs, encrypt_pdf, decrypt_pdf
+from services.contract_client import mint_credential, verify_credential_by_hash 
 from services.certificate_repository import CertificateRepository
 from services.student_repository import StudentRepository
 from services.degree_repository import DegreeRepository
@@ -307,6 +313,29 @@ def verify_certificate(registration_id: int):
     return _pending_release_view(result)
 
 
+@app.post("/verify-document")
+async def verify_document(file: UploadFile = File(...)):
+    """Public document-verification endpoint. The caller uploads a PDF —
+    this hashes it exactly the way /generate-pdf hashed it when the
+    certificate was originally minted, then asks the smart contract
+    (via verifyByHash) whether any token was minted against that exact
+    hash. If one exists, its full on-chain metadata (via getCredential)
+    is returned so the Frontend can show "this is a verified, authentic
+    credential" with matching details.
+
+    No login required — same public-access model as /verify/{registration_id}.
+    Note: this hashes whatever bytes are uploaded, so the caller needs the
+    original (decrypted) PDF — the same file /students/{id}/certificate/download
+    hands back, not the encrypted ciphertext that sits in IPFS."""
+    pdf_bytes = await file.read()
+    document_hash = hash_pdf(pdf_bytes)
+
+    result = verify_credential_by_hash(document_hash)
+    if result is None:
+        return {"verified": False}
+
+    return {"verified": True, **result}
+
 @app.get("/students/{studentid}")
 def get_student_profile(studentid: str, user: dict = Depends(require_self_or_admin)):
     """Return this student's own registration(s) — their profile info for
@@ -361,6 +390,7 @@ def download_student_certificate(
         raise HTTPException(status_code=400, detail="Certificate PDF hasn't been generated yet")
 
     pdf_bytes = download_from_ipfs(row["ipfs_cid"])
+    pdf_bytes = decrypt_pdf(pdf_bytes)
     filename = f"{row['student_id']}_certificate.pdf"
     return Response(
         content=pdf_bytes,
@@ -431,8 +461,8 @@ def revoke_verification_link(studentid: str, link_id: int, user: dict = Depends(
 @app.post("/generate-pdf")
 def generate_pdf_batch(admin: dict = Depends(require_admin)):
     """Process every registration with status='registered':
-    render its PDF, hash it, upload to IPFS, and write the results
-    back to the database. Requires an admin login token."""
+    render its PDF, hash it, encrypt it, upload the ciphertext to IPFS,
+    and write the results back to the database. Requires an admin login token."""
     students = registration_repo.get_registered()
     results = []
 
@@ -444,8 +474,9 @@ def generate_pdf_batch(admin: dict = Depends(require_admin)):
             degree_name=student["degree_name"],
             conferral_date=str(student["conferral_date"]),
         )
-        pdf_hash = hash_pdf(pdf_bytes)
-        cid = upload_to_ipfs(pdf_bytes, filename=f"{student['student_id']}.pdf")
+        pdf_hash = hash_pdf(pdf_bytes)  # hash the plain PDF — this must match what verifiers hash later
+        encrypted_bytes = encrypt_pdf(pdf_bytes)  # only the ciphertext gets pinned
+        cid = upload_to_ipfs(encrypted_bytes, filename=f"{student['student_id']}.pdf.enc")
         registration_repo.update_pdf_info(student["id"], pdf_hash, cid)
 
         results.append({
@@ -501,6 +532,8 @@ def generate_token(certificate_id: str, admin: dict = Depends(require_admin)):
     placeholders here. Everything else (lookup, status checks, DB update,
     response shape) should stay the same so the Frontend doesn't need to
     change once this is wired up for real.
+
+    Already Implemented (Han Zaw)
     """
     certificate = registration_repo.get_by_certificate_id(certificate_id)
     if certificate is None:
@@ -514,10 +547,26 @@ def generate_token(certificate_id: str, admin: dict = Depends(require_admin)):
             detail="PDF must be generated before minting a token",
         )
 
-    # --- stub start (swap for the real contract call) ---
-    token_id = certificate["id"]
-    mint_tx_hash = "0x" + secrets.token_hex(32)
-    # --- stub end ---
+    graduation_epoch = int(
+        datetime.combine(certificate["conferral_date"], datetime.min.time()).timestamp()
+    )
 
-    registration_repo.update_mint_info(certificate_id, token_id, mint_tx_hash)
+    metadata_cid = upload_json_to_ipfs({
+        "name": f"{certificate['degree_name']} — Academic Credential",
+        "description": f"Issued to {certificate['student_name']}",
+        "image": f"ipfs://{BADGE_IMAGE_CID}",
+        "attributes": [{"trait_type": "Degree", "value": certificate["degree_name"]}],
+    })
+
+    result = mint_credential(
+        wallet_address=certificate["wallet_address"],
+        token_uri=f"ipfs://{metadata_cid}",
+        document_hash=certificate["pdf_hash"],
+        student_name=certificate["student_name"],
+        degree_name=certificate["degree_name"],
+        graduation_date_epoch=graduation_epoch,
+        document_cid=certificate["ipfs_cid"],
+    )
+
+    registration_repo.update_mint_info(certificate_id, result["tokenId"], result["txHash"])
     return registration_repo.get_by_certificate_id(certificate_id)
