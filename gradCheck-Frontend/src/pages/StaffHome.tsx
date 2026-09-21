@@ -1,6 +1,9 @@
 import { Link } from "react-router-dom";
+import { authService } from "../services/AuthService";
 
 const Home = () => {
+  const isSuperAdmin = authService.isSuperAdmin();
+
   return (
     <div className="container py-5">
       <div className="row justify-content-center">
@@ -10,11 +13,14 @@ const Home = () => {
               <h1 className="h3 mb-4">
                 Staff Management
               </h1>
-              <div className="mt-3">
-                <Link to="/staff/register">
-                  Register Staff
-                </Link>
-              </div>
+
+              {isSuperAdmin && (
+                <div className="mt-3">
+                  <Link to="/staff/register">
+                    Register Staff
+                  </Link>
+                </div>
+              )}
 
               <div className="mt-3">
                 <Link to="/staff/dashboard">
