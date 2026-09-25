@@ -513,7 +513,8 @@ def generate_pdf_single(certificate_id: str, admin: dict = Depends(require_admin
         conferral_date=str(certificate["conferral_date"]),
     )
     pdf_hash = hash_pdf(pdf_bytes)
-    cid = upload_to_ipfs(pdf_bytes, filename=f"{certificate['student_id']}.pdf")
+    encrypted_bytes = encrypt_pdf(pdf_bytes)  # only the ciphertext gets pinned
+    cid = upload_to_ipfs(encrypted_bytes, filename=f"{certificate['student_id']}.pdf.enc")
     registration_repo.update_pdf_info(certificate["id"], pdf_hash, cid)
 
     return registration_repo.get_by_certificate_id(certificate_id)
