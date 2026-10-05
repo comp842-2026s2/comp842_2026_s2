@@ -20,17 +20,30 @@ function CertificateGeneration() {
 
   const refresh = () => staffService.getRegistrations().then((data) => { if (mounted.current) setStudents(data); });
 
-  useEffect(() => {
-    mounted.current = true;
-    let cancelled = false;
-    staffService.getRegistrations()
-      .then((data) => { if (!cancelled) setStudents(data); })
-      .catch((err: unknown) => {
-        if (!cancelled) setError(err instanceof Error ? err.message : "Unable to load registrations.");
-      })
-      .finally(() => { if (!cancelled) setLoading(false); });
-    return () => { cancelled = true; mounted.current = false; };
-  }, []);
+useEffect(() => {
+  mounted.current = true;
+  let cancelled = false;
+
+  staffService.getRegistrations()
+    .then((data) => {
+      if (!cancelled) {
+        setStudents(data);
+      }
+    })
+    .catch((err: unknown) => {
+      console.error("Failed to load registrations:", err);
+    })
+    .finally(() => {
+      if (!cancelled) {
+        setLoading(false);
+      }
+    });
+
+  return () => {
+    cancelled = true;
+    mounted.current = false;
+  };
+}, []);
 
   const handleBulkGeneratePdf = async () => {
     if (busy.current || bulkGenerating) return;
@@ -111,7 +124,8 @@ function CertificateGeneration() {
               <th>Status</th><th scope="col">PDF</th><th scope="col">Token</th>
           </tr></thead>
           <tbody>
-            {loading ? <tr><td colSpan={6} className="gradcheck-empty-state">Loading registrations…</td></tr> : students.length === 0 ? <tr><td colSpan={6} className="gradcheck-empty-state">{error ? "Registrations could not be loaded." : "No registrations found."}</td></tr> : students.map((student) => (
+            {loading ? <tr><td colSpan={6} className="gradcheck-empty-state">Loading registrations…</td></tr> : students.length === 0 ? <tr><td colSpan={6} className="gradcheck-empty-state">No registrations found.</td></tr> 
+            : students.map((student) => (
               <tr key={student.id}>
                 <td>{student.student_id}</td>
                 <td>{student.student_name}{student.last_error && <span className="gradcheck-error-message">{student.last_error}</span>}</td>

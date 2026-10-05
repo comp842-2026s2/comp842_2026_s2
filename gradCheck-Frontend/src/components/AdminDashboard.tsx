@@ -8,7 +8,7 @@ function AdminDashboard() {
     StudentCredential[]
   >([]);
 
-  const [error, setError] = useState("");
+  //const [error, setError] = useState("");
   const [message] = useState("");
 
   const loadData = async () => {
@@ -17,13 +17,16 @@ function AdminDashboard() {
         await staffService.getRegistrations();
 
       setStudents(data);
-    } catch (err) {
-      setError(
-        err instanceof Error
-          ? err.message
-          : "Unable to load dashboard"
-      );
-    }
+    }  catch (err) {
+          console.error("Failed to load dashboard:", err);
+        }
+    //catch (err) {
+      //setError(
+        //err instanceof Error
+         // ? err.message
+          //: "Unable to load dashboard"
+     // );
+    //}
   };
 
   useEffect(() => {
@@ -80,12 +83,6 @@ function AdminDashboard() {
       {message && (
         <div className="gradcheck-success-message">
           {message}
-        </div>
-      )}
-
-      {error && (
-        <div className="gradcheck-error-message">
-          {error}
         </div>
       )}
 
