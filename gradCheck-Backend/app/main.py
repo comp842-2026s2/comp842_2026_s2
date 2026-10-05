@@ -458,6 +458,38 @@ def revoke_verification_link(studentid: str, link_id: int, user: dict = Depends(
     return {"id": link_id, "revoked": True}
 
 
+@app.get("/verify-link/{token}")
+def validate_verification_link(token: str):
+    """Public check: is this shareable verification token still valid?
+    Backend for the verify page opened from <verify page>?token=<token>.
+
+    The DB only stores the SHA-256 hash of each token (see
+    create_verification_link), so the raw token from the link is hashed
+    here and looked up by that hash. Always answers 200 with
+    {"valid": bool}; when invalid, "reason" is one of "not_found",
+    "revoked" or "expired". When valid, the certificate is returned in
+    the same shape (and with the same pending-release hiding) as the
+    public GET /verify/{registration_id}. No login required."""
+    token_hash = hashlib.sha256(token.encode("utf-8")).hexdigest()
+    link = verification_link_repo.get_by_token_hash(token_hash)
+    if link is None:
+        return {"valid": False, "reason": "not_found"}
+    if link["revoked"]:
+        return {"valid": False, "reason": "revoked"}
+    # expires_at is stored in UTC (create_verification_link uses utcnow)
+    if link["expires_at"] < datetime.utcnow():
+        return {"valid": False, "reason": "expired", "expires_at": link["expires_at"]}
+
+    certificate = registration_repo.get_by_id(link["registration_id"])
+    if certificate is None:
+        return {"valid": False, "reason": "not_found"}
+    return {
+        "valid": True,
+        "expires_at": link["expires_at"],
+        "certificate": _pending_release_view(certificate),
+    }
+
+
 @app.post("/generate-pdf")
 def generate_pdf_batch(admin: dict = Depends(require_admin)):
     """Process every registration with status='registered':
