@@ -72,13 +72,30 @@ const StudentCertificatePage = () => {
   return (
     <div className="container py-4">
       {contractAddress && (
-        <div className="alert alert-light border shadow-sm mb-4">
-          <div className="d-flex flex-column flex-md-row gap-2">
-            <strong>Blockchain Contract Address:</strong>
+        <div className="card border-0 shadow-sm mb-4">
+          <div className="card-body">
+            <div className="d-flex flex-column flex-lg-row justify-content-between gap-3">
+              <div>
+                <div className="fw-semibold mb-1">
+                  Blockchain Contract Address
+                </div>
 
-            <span className="font-monospace text-break">
-              {contractAddress}
-            </span>
+                <div className="font-monospace text-break">
+                  {contractAddress ?? "Loading..."}
+                </div>
+              </div>
+
+              <div className="d-flex align-items-start">
+                <a
+                  href="/Importing_NFT_on_the_Metamask_wallet.pdf"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="btn btn-outline-primary"
+                >
+                  View NFT Import Guide
+                </a>
+              </div>
+            </div>
           </div>
         </div>
       )}
