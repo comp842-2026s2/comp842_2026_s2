@@ -160,9 +160,9 @@ def register_login(payload: LoginRegisterRequest, admin: dict = Depends(require_
 
 
 @app.get("/students")
-def list_all_students(user: dict = Depends(get_current_user)):
-    """Return every registered student, regardless of status. Requires a
-    valid login token (any login_type) — for an admin/staff dashboard view."""
+def list_all_students(admin: dict = Depends(require_admin)):
+    """Return every registered student, regardless of status. Admin/staff
+    token only — students must not be able to list other students."""
     return registration_repo.get_all()
 
 
