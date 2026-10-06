@@ -18,7 +18,7 @@ from pydantic import BaseModel
 from services.pdf_generator import render_degree_pdf
 from services.hasher import hash_pdf
 from services.ipfs_client import upload_to_ipfs, download_from_ipfs, upload_json_to_ipfs, encrypt_pdf, decrypt_pdf
-from services.contract_client import mint_credential, verify_credential_by_hash 
+from services.contract_client import mint_credential, verify_credential_by_hash, CONTRACT_ADDRESS 
 from services.certificate_repository import CertificateRepository
 from services.student_repository import StudentRepository
 from services.degree_repository import DegreeRepository
@@ -456,6 +456,16 @@ def revoke_verification_link(studentid: str, link_id: int, user: dict = Depends(
 
     verification_link_repo.revoke(link_id)
     return {"id": link_id, "revoked": True}
+
+
+@app.get("/contract-address")
+def get_contract_address() -> str:
+    """Return the deployed credential contract's address as a plain
+    string (checksummed, read from the CONTRACT_ADDRESS env var). Public,
+    no login — the address is already public on-chain. The Frontend uses
+    it for the 'Add to wallet' / Etherscan link (pair it with a
+    certificate's token_id)."""
+    return CONTRACT_ADDRESS
 
 
 @app.get("/verify-link/{token}")
