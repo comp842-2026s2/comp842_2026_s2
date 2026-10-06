@@ -90,6 +90,30 @@ export class HttpClient {
       response,
     };
   }
+
+  async validateLink(token: string) {
+    return httpClient.request(
+      `/verify-link/${encodeURIComponent(token)}`,
+      {},
+      false
+    );
+  }
+
+  async verifyDocument(certificateFile: File) {
+    const formData = new FormData();
+
+    formData.append("file", certificateFile);
+
+    return httpClient.request(
+      "/verify-document",
+      {
+        method: "POST",
+        body: formData,
+      },
+      false
+    );
+  }
+
 }
 
 export const httpClient = new HttpClient();
