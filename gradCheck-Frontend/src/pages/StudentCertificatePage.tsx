@@ -32,6 +32,7 @@ const StudentCertificatePage = () => {
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [downloadingId, setDownloadingId] = useState<number | null>(null);
+  const [contractAddress, setContractAddress] = useState<string | null>(null);
 
   useEffect(() => {
     studentCertificateService
@@ -43,6 +44,16 @@ const StudentCertificatePage = () => {
         )
       )
       .finally(() => setIsLoading(false));
+
+    studentCertificateService
+      .getContractAddress()
+      .then(setContractAddress)
+      .catch((err) =>
+        console.error(
+          "Unable to load contract address:",
+          err
+        )
+      );
   }, []);
 
   const download = async (certificate: StudentCertificate) => {
@@ -60,6 +71,17 @@ const StudentCertificatePage = () => {
 
   return (
     <div className="container py-4">
+      {contractAddress && (
+        <div className="alert alert-light border shadow-sm mb-4">
+          <div className="d-flex flex-column flex-md-row gap-2">
+            <strong>Blockchain Contract Address:</strong>
+
+            <span className="font-monospace text-break">
+              {contractAddress}
+            </span>
+          </div>
+        </div>
+      )}
       <div className="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4">
         <h1 className="h3 mb-0">My Graduation Certificates</h1>
         <Link

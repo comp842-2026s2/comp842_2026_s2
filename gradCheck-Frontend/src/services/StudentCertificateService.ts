@@ -53,6 +53,14 @@ class StudentCertificateService {
     anchor.remove();
     URL.revokeObjectURL(url);
   }
+
+  async getContractAddress(): Promise<string> {
+    return httpClient.request<string>(
+      "/contract-address",
+      {},
+      false
+    );
+  }
 }
 
 export const studentCertificateService = new StudentCertificateService();
