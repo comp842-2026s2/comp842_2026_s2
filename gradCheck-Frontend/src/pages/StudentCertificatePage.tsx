@@ -6,6 +6,27 @@ import { studentCertificateService } from "../services/StudentCertificateService
 const formatStatus = (status: string) =>
   status.replaceAll("_", " ").replace(/\b\w/g, (char) => char.toUpperCase());
 
+const maskValue = (
+  value: string | number | null | undefined,
+  fallback: string
+) => {
+  if (
+    value === null ||
+    value === undefined ||
+    String(value).trim() === ""
+  ) {
+    return fallback;
+  }
+
+  const text = String(value);
+
+  if (text.length <= 10) {
+    return "****";
+  }
+
+  return `${text.slice(0, 6)}****${text.slice(-4)}`;
+};
+
 const StudentCertificatePage = () => {
   const [certificates, setCertificates] = useState<StudentCertificate[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -87,12 +108,18 @@ const StudentCertificatePage = () => {
 
                       <dt className="col-sm-4">Wallet Address</dt>
                       <dd className="col-sm-8 text-break">
-                        {certificate.wallet_address}
+                        {maskValue(
+                          certificate.wallet_address,
+                          "Not available"
+                        )}
                       </dd>
 
                       <dt className="col-sm-4">PDF Hash</dt>
                       <dd className="col-sm-8 text-break">
-                        {certificate.pdf_hash ?? "Not available yet"}
+                        {maskValue(
+                          certificate.pdf_hash,
+                          "Not available yet"
+                        )}
                       </dd>
 
                       <dt className="col-sm-4">NFT Token ID</dt>
@@ -102,7 +129,10 @@ const StudentCertificatePage = () => {
 
                       <dt className="col-sm-4">Mint Transaction Hash</dt>
                       <dd className="col-sm-8 text-break">
-                        {certificate.mint_tx_hash ?? "Not available"}
+                        {maskValue(
+                          certificate.mint_tx_hash,
+                          "Not available"
+                        )}
                       </dd>
 
                       <dt className="col-sm-4">Minted At</dt>

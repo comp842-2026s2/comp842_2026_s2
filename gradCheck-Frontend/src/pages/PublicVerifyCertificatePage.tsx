@@ -405,6 +405,40 @@ const UnavailableMessage = ({
   </div>
 );
 
+const MASKED_FIELDS = new Set([
+  "documentCID",
+  "documentHash",
+  "recipient",
+  "tokenURI",
+]);
+
+const maskValue = (
+  value: unknown,
+  visibleStart = 6,
+  visibleEnd = 4
+): string => {
+  if (value === null || value === undefined) {
+    return "-";
+  }
+
+  const text = String(value);
+
+  if (text.length <= visibleStart + visibleEnd) {
+    return "****";
+  }
+
+  return `${text.slice(0, visibleStart)}****${text.slice(-visibleEnd)}`;
+};
+
+const displayResultValue = (
+  key: string,
+  value: unknown
+): string => {
+  return MASKED_FIELDS.has(key)
+    ? maskValue(value)
+    : String(value);
+};
+
 const VerificationResult = ({
   result,
 }: {
@@ -460,7 +494,7 @@ const VerificationResult = ({
                 {key.replaceAll("_", " ")}
               </dt>
               <dd className="col-sm-8 text-break">
-                {String(value)}
+                {displayResultValue(key, value)}
               </dd>
             </div>
           ))}
