@@ -31,8 +31,8 @@ const StudentRegistrationPage = () => {
       .then(setDegrees)
       .catch((err) =>
         setError(
-          err instanceof Error ? err.message : "Unable to load degrees."
-        )
+          err instanceof Error ? err.message : "Unable to load degrees.",
+        ),
       )
       .finally(() => setIsLoadingDegrees(false));
   }, []);
@@ -63,7 +63,7 @@ const StudentRegistrationPage = () => {
 
       const message = result.login_created
         ? "Registration successful. You can now log in with your student ID."
-        : "Certificate registration succeeded, but the login account was not created. Please contact support."
+        : "Certificate registration succeeded, but the login account was not created. Please contact support.";
 
       navigate("/login", {
         replace: true,
@@ -146,10 +146,7 @@ const StudentRegistrationPage = () => {
                         : "Select a degree"}
                     </option>
                     {degrees.map((degree) => (
-                      <option
-                        key={degree.degree_id}
-                        value={degree.degree_id}
-                      >
+                      <option key={degree.degree_id} value={degree.degree_id}>
                         {degree.degree_name} — {degree.university_name}
                       </option>
                     ))}
@@ -174,7 +171,7 @@ const StudentRegistrationPage = () => {
 
                 <div className="mb-3">
                   <label className="form-label" htmlFor="conferral_date">
-                    Conferral Date
+                    Graduation Date
                   </label>
                   <input
                     id="conferral_date"

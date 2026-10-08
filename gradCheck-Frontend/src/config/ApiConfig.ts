@@ -1,5 +1,6 @@
-export const API_BASE_URL = "http://localhost:8000";
-
+//export const API_BASE_URL = "http://localhost:8000";
+//export const API_BASE_URL = "http://3.27.47.62:8000";
+export const API_BASE_URL = "https://d2rpncrq9ai8ht.cloudfront.net";
 const studentPath = (studentId: string) =>
   `/students/${encodeURIComponent(studentId)}`;
 

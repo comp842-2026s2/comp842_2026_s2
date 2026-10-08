@@ -7,7 +7,8 @@ from dotenv import load_dotenv
 load_dotenv()
 
 BADGE_IMAGE_CID = os.environ["BADGE_IMAGE_CID"]
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, timedelta, timezone
+from zoneinfo import ZoneInfo
 from typing import Optional
 
 from fastapi import FastAPI, HTTPException, Depends, Response, UploadFile, File
@@ -48,12 +49,17 @@ bearer_scheme = HTTPBearer()
 # CORS error before it even reaches these endpoints.
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],
+    allow_origins=["https://d3i8y5vvc1oqfs.cloudfront.net", "http://localhost:5173", "http://127.0.0.1:5173"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
+NEW_ZEALAND_TZ = ZoneInfo("Pacific/Auckland")
+
+
+def current_new_zealand_date() -> date:
+    return datetime.now(NEW_ZEALAND_TZ).date()
 
 @app.get("/")
 def health_check():
@@ -288,7 +294,7 @@ def _pending_release_view(row):
     (certificate_id, university_name, wallet_address, registered_at, ...)
     passes through untouched, so this doesn't silently drop fields if the
     repository's row shape grows again later."""
-    if row["conferral_date"] > date.today():
+    if row["conferral_date"] > current_new_zealand_date():
         hidden = dict(row)
         hidden["status"] = "pending_release"
         for field in ("pdf_hash", "ipfs_cid", "token_id", "mint_tx_hash", "minted_at"):
@@ -383,7 +389,7 @@ def download_student_certificate(
             detail="This student has multiple registrations — pass ?registration_id=... to pick one",
         )
 
-    if row["conferral_date"] > date.today():
+    if row["conferral_date"] > current_new_zealand_date():
         raise HTTPException(status_code=403, detail="Certificate isn't released yet (conferral date hasn't arrived)")
 
     if not row["ipfs_cid"]:
@@ -590,8 +596,18 @@ def generate_token(certificate_id: str, admin: dict = Depends(require_admin)):
             detail="PDF must be generated before minting a token",
         )
 
+    conferral_date = certificate["conferral_date"]
+
+    if isinstance(conferral_date, str):
+        conferral_date = date.fromisoformat(conferral_date)
+
     graduation_epoch = int(
-        datetime.combine(certificate["conferral_date"], datetime.min.time()).timestamp()
+        datetime(
+            conferral_date.year,
+            conferral_date.month,
+            conferral_date.day,
+            tzinfo=timezone.utc,
+        ).timestamp()
     )
 
     metadata_cid = upload_json_to_ipfs({
@@ -600,6 +616,9 @@ def generate_token(certificate_id: str, admin: dict = Depends(require_admin)):
         "image": f"ipfs://{BADGE_IMAGE_CID}",
         "attributes": [{"trait_type": "Degree", "value": certificate["degree_name"]}],
     })
+
+    print(f"DEBUG IPFS CID: {certificate['ipfs_cid']}")
+    print(f"DEBUG Metadata CID: {metadata_cid}")
 
     result = mint_credential(
         wallet_address=certificate["wallet_address"],

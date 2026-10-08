@@ -8,13 +8,9 @@ const formatStatus = (status: string) =>
 
 const maskValue = (
   value: string | number | null | undefined,
-  fallback: string
+  fallback: string,
 ) => {
-  if (
-    value === null ||
-    value === undefined ||
-    String(value).trim() === ""
-  ) {
+  if (value === null || value === undefined || String(value).trim() === "") {
     return fallback;
   }
 
@@ -40,20 +36,15 @@ const StudentCertificatePage = () => {
       .then(setCertificates)
       .catch((err) =>
         setError(
-          err instanceof Error ? err.message : "Unable to load certificates."
-        )
+          err instanceof Error ? err.message : "Unable to load certificates.",
+        ),
       )
       .finally(() => setIsLoading(false));
 
     studentCertificateService
       .getContractAddress()
       .then(setContractAddress)
-      .catch((err) =>
-        console.error(
-          "Unable to load contract address:",
-          err
-        )
-      );
+      .catch((err) => console.error("Unable to load contract address:", err));
   }, []);
 
   const download = async (certificate: StudentCertificate) => {
@@ -142,23 +133,17 @@ const StudentCertificatePage = () => {
                       <dt className="col-sm-4">Certificate ID</dt>
                       <dd className="col-sm-8">{certificate.certificate_id}</dd>
 
-                      <dt className="col-sm-4">Conferral Date</dt>
+                      <dt className="col-sm-4">Graduation Date</dt>
                       <dd className="col-sm-8">{certificate.conferral_date}</dd>
 
                       <dt className="col-sm-4">Wallet Address</dt>
                       <dd className="col-sm-8 text-break">
-                        {maskValue(
-                          certificate.wallet_address,
-                          "Not available"
-                        )}
+                        {maskValue(certificate.wallet_address, "Not available")}
                       </dd>
 
                       <dt className="col-sm-4">PDF Hash</dt>
                       <dd className="col-sm-8 text-break">
-                        {maskValue(
-                          certificate.pdf_hash,
-                          "Not available yet"
-                        )}
+                        {maskValue(certificate.pdf_hash, "Not available yet")}
                       </dd>
 
                       <dt className="col-sm-4">NFT Token ID</dt>
@@ -168,10 +153,7 @@ const StudentCertificatePage = () => {
 
                       <dt className="col-sm-4">Mint Transaction Hash</dt>
                       <dd className="col-sm-8 text-break">
-                        {maskValue(
-                          certificate.mint_tx_hash,
-                          "Not available"
-                        )}
+                        {maskValue(certificate.mint_tx_hash, "Not available")}
                       </dd>
 
                       <dt className="col-sm-4">Minted At</dt>
@@ -184,9 +166,9 @@ const StudentCertificatePage = () => {
 
                     {certificate.status === "pending_release" && (
                       <div className="alert alert-info">
-                        This certificate has not reached its conferral date yet.
-                        Verification and blockchain details are hidden until it
-                        is released.
+                        This certificate has not reached its graduation date
+                        yet. Verification and blockchain details are hidden
+                        until it is released.
                       </div>
                     )}
 

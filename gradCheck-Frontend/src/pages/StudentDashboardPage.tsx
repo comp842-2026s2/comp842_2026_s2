@@ -8,7 +8,8 @@ const formatStatus = (status: string) =>
 
 const StudentDashboardPage = () => {
   const location = useLocation();
-  const successMessage = (location.state as { message?: string } | null)?.message;
+  const successMessage = (location.state as { message?: string } | null)
+    ?.message;
   const [registrations, setRegistrations] = useState<StudentCertificate[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -19,8 +20,8 @@ const StudentDashboardPage = () => {
       .then(setRegistrations)
       .catch((err) =>
         setError(
-          err instanceof Error ? err.message : "Unable to load dashboard."
-        )
+          err instanceof Error ? err.message : "Unable to load dashboard.",
+        ),
       )
       .finally(() => setIsLoading(false));
   }, []);
@@ -28,7 +29,7 @@ const StudentDashboardPage = () => {
   const student = registrations[0] ?? null;
   const mintedCount = useMemo(
     () => registrations.filter((item) => item.status === "minted").length,
-    [registrations]
+    [registrations],
   );
 
   return (
@@ -97,7 +98,7 @@ const StudentDashboardPage = () => {
                       <th>Certificate ID</th>
                       <th>Degree</th>
                       <th>University</th>
-                      <th>Conferral Date</th>
+                      <th>Graduation Date</th>
                       <th>Status</th>
                     </tr>
                   </thead>

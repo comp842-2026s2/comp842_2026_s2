@@ -75,8 +75,8 @@ const StudentCertificateRegistrationPage = () => {
         setError(
           err instanceof Error
             ? err.message
-            : "Unable to load certificate registration details."
-        )
+            : "Unable to load certificate registration details.",
+        ),
       )
       .finally(() => setIsLoading(false));
   }, []);
@@ -97,7 +97,7 @@ const StudentCertificateRegistrationPage = () => {
 
     if (form.conferral_date < minimumConferralDate) {
       setError(
-        "Conferral date must be at least 2 weeks from the current date."
+        "Graduation date must be at least 2 weeks from the current date.",
       );
       return;
     }
@@ -122,7 +122,7 @@ const StudentCertificateRegistrationPage = () => {
       setError(
         err instanceof Error
           ? err.message
-          : "Unable to register the certificate."
+          : "Unable to register the certificate.",
       );
     } finally {
       setIsSubmitting(false);
@@ -206,8 +206,8 @@ const StudentCertificateRegistrationPage = () => {
                     {registrations.length > 0 && (
                       <div className="form-text">
                         You already have {registrations.length} certificate
-                        registration{registrations.length === 1 ? "" : "s"}.
-                        The backend prevents duplicate registration for the same
+                        registration{registrations.length === 1 ? "" : "s"}. The
+                        backend prevents duplicate registration for the same
                         degree.
                       </div>
                     )}
@@ -239,7 +239,7 @@ const StudentCertificateRegistrationPage = () => {
 
                   <div className="col-md-6">
                     <label className="form-label" htmlFor="conferral_date">
-                      Conferral Date
+                      Graduation Date
                     </label>
                     <input
                       id="conferral_date"

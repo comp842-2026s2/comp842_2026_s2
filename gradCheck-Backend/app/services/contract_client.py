@@ -1,4 +1,5 @@
 import json
+import logging
 import os
 from pathlib import Path
 
@@ -7,6 +8,38 @@ from web3 import Web3
 from datetime import datetime, timezone
 
 load_dotenv()
+
+_DEFAULT_MINT_LOG_FILE = Path(__file__).resolve().parents[2] / "logs" / "minting.log"
+_MINT_LOG_FILE = Path(os.getenv("MINT_LOG_FILE", _DEFAULT_MINT_LOG_FILE))
+
+
+class _MintLogFormatter(logging.Formatter):
+    """Format mint audit records as one JSON object per line."""
+
+    def format(self, record):
+        return json.dumps(
+            {
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "event": "credential_mint",
+                **record.mint_record,
+            },
+            default=str,
+        )
+
+
+def _get_mint_logger():
+    logger = logging.getLogger(__name__)
+    if not logger.handlers:
+        _MINT_LOG_FILE.parent.mkdir(parents=True, exist_ok=True)
+        handler = logging.FileHandler(_MINT_LOG_FILE, encoding="utf-8")
+        handler.setFormatter(_MintLogFormatter())
+        logger.addHandler(handler)
+        logger.setLevel(logging.INFO)
+        logger.propagate = False
+    return logger
+
+
+mint_logger = _get_mint_logger()
 
 API_URL = os.environ["API_URL"]
 PRIVATE_KEY = os.environ["PRIVATE_KEY"]
@@ -22,29 +55,71 @@ contract = w3.eth.contract(address=CONTRACT_ADDRESS, abi=CONTRACT_ABI)
 
 def mint_credential(wallet_address, token_uri, document_hash, student_name, degree_name, graduation_date_epoch, document_cid):
     """Signs and sends mint() from the university's minter wallet. Returns {txHash, tokenId}."""
-    tx = contract.functions.mint(
-        Web3.to_checksum_address(wallet_address),
-        token_uri,
-        Web3.to_bytes(hexstr=document_hash),
-        student_name,
-        degree_name,
-        graduation_date_epoch,
-        document_cid,
-    ).build_transaction({
-        "from": account.address,
-        "nonce": w3.eth.get_transaction_count(account.address),
-        "gas": 500_000,
-        "gasPrice": w3.eth.gas_price,
-    })
+    request_data = {
+        "walletAddress": wallet_address,
+        "tokenURI": token_uri,
+        "documentHash": document_hash,
+        "studentName": student_name,
+        "degreeName": degree_name,
+        "graduationDateEpoch": graduation_date_epoch,
+        "documentCID": document_cid,
+    }
 
-    signed = account.sign_transaction(tx)
-    tx_hash = w3.eth.send_raw_transaction(signed.raw_transaction)
-    receipt = w3.eth.wait_for_transaction_receipt(tx_hash)
+    try:
+        tx = contract.functions.mint(
+            Web3.to_checksum_address(wallet_address),
+            token_uri,
+            Web3.to_bytes(hexstr=document_hash),
+            student_name,
+            degree_name,
+            graduation_date_epoch,
+            document_cid,
+        ).build_transaction({
+            "from": account.address,
+            "nonce": w3.eth.get_transaction_count(account.address),
+            "gas": 3_000_000,
+            "gasPrice": w3.eth.gas_price,
+        })
 
-    minted = contract.events.CredentialMinted().process_receipt(receipt)
-    token_id = minted[0]["args"]["tokenId"] if minted else None
+        signed = account.sign_transaction(tx)
+        tx_hash = w3.eth.send_raw_transaction(signed.raw_transaction)
+        receipt = w3.eth.wait_for_transaction_receipt(tx_hash)
 
-    return {"txHash": tx_hash.hex(), "tokenId": token_id}
+        minted = contract.events.CredentialMinted().process_receipt(receipt)
+        token_id = minted[0]["args"]["tokenId"] if minted else None
+        result = {"txHash": tx_hash.hex(), "tokenId": token_id}
+
+        mint_logger.info(
+            "Mint completed",
+            extra={
+                "mint_record": {
+                    "status": "success" if receipt["status"] == 1 else "failed",
+                    "request": request_data,
+                    "response": {
+                        **result,
+                        "receiptStatus": receipt["status"],
+                    },
+                }
+            },
+        )
+        return result
+    except Exception as error:
+        mint_logger.error(
+            "Mint failed",
+            extra={
+                "mint_record": {
+                    "status": "failed",
+                    "request": request_data,
+                    "response": None,
+                    "error": {
+                        "type": type(error).__name__,
+                        "message": str(error),
+                    },
+                }
+            },
+        )
+        raise
+
 
 def verify_credential_by_hash(document_hash: str):
     """Looks up a credential by its document hash (the same "0x"+hex
